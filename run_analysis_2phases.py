@@ -111,12 +111,12 @@ def main():
     print("PASO 3: GENERANDO MALLA CON GMSH")
     print("="*80)
 
-    print("Ejecutando generate_mesh_quarter.py...")
+    print("Ejecutando generate_mesh_quarter_modificado.py...")
     print("(Esto generará una malla tetraédrica con Gmsh)")
 
     import subprocess
     result = subprocess.run(
-        ['python3', 'generate_mesh_quarter.py'],
+        ['python3', 'generate_mesh_quarter_modificado.py'],
         capture_output=True,
         text=True,
         timeout=300  # 5 minutos máximo
