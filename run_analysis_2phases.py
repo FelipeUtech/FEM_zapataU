@@ -527,18 +527,71 @@ def main():
     # La carga de columna es adicional (no incluir peso propio que ya está en gravedad)
     carga_total = P_column
 
-    # Distribuir carga entre nodos del tope de zapata
-    if len(zapata_nodes) == 0:
-        print("⚠️  Advertencia: No se encontraron nodos en el tope de la zapata")
-        print("    Aplicando carga en nodos de superficie dentro de área de zapata")
+    # -------------------------
+    # IDENTIFICAR NODOS DE INTERFAZ ZAPATA-SUELO
+    # -------------------------
+    print("\nIdentificando nodos de interfaz zapata-suelo...")
 
-        # Buscar nodos de superficie en área de zapata
-        for nid in surface_nodes:
-            coords = node_coords[nid]
-            x, y = coords[0], coords[1]
-            if (x_min_zapata <= x <= x_max_zapata and
-                y_min_zapata <= y <= y_max_zapata):
-                zapata_nodes.append(nid)
+    # Crear sets para almacenar nodos de concreto y de suelo
+    nodos_concreto = set()
+    nodos_suelo = set()
+
+    # Recorrer elementos para clasificar nodos
+    element_id = 1
+    cell_idx = 0
+
+    while cell_idx < len(cells):
+        n_points = cells[cell_idx]
+        if n_points != 4:
+            cell_idx += n_points + 1
+            continue
+
+        # Índices de nodos en PyVista
+        idx1 = int(cells[cell_idx + 1])
+        idx2 = int(cells[cell_idx + 2])
+        idx3 = int(cells[cell_idx + 3])
+        idx4 = int(cells[cell_idx + 4])
+
+        # IDs de nodos en OpenSees
+        n1 = node_mapping[idx1]
+        n2 = node_mapping[idx2]
+        n3 = node_mapping[idx3]
+        n4 = node_mapping[idx4]
+
+        # Material del elemento
+        mat_id = int(material_ids[element_id - 1])
+
+        # Clasificar nodos según material del elemento
+        if mat_id == mat_tag_zapata:
+            nodos_concreto.update([n1, n2, n3, n4])
+        else:
+            nodos_suelo.update([n1, n2, n3, n4])
+
+        element_id += 1
+        cell_idx += n_points + 1
+
+    # Nodos de interfaz son los que están tanto en concreto como en suelo
+    nodos_interfaz = nodos_concreto.intersection(nodos_suelo)
+
+    # Filtrar nodos del tope de zapata para excluir nodos de interfaz
+    zapata_nodes_original = zapata_nodes.copy()
+    zapata_nodes_interior = [nid for nid in zapata_nodes if nid not in nodos_interfaz]
+
+    print(f"✓ Total nodos en tope de zapata: {len(zapata_nodes_original)}")
+    print(f"  Nodos en interfaz zapata-suelo: {len([n for n in zapata_nodes_original if n in nodos_interfaz])}")
+    print(f"  Nodos interiores (sin interfaz): {len(zapata_nodes_interior)}")
+
+    # Usar solo nodos interiores para aplicar carga
+    zapata_nodes = zapata_nodes_interior
+
+    # -------------------------
+    # DISTRIBUIR CARGA EN NODOS INTERIORES
+    # -------------------------
+    # Distribuir carga entre nodos del tope de zapata (solo interiores)
+    if len(zapata_nodes) == 0:
+        print("⚠️  Advertencia: No se encontraron nodos interiores en el tope de la zapata")
+        print("    Usando todos los nodos del tope (incluyendo interfaz)")
+        zapata_nodes = zapata_nodes_original
 
     if len(zapata_nodes) > 0:
         carga_por_nodo_kN = -carga_total / len(zapata_nodes)  # Negativa (hacia abajo), en kN
