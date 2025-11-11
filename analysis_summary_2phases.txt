@@ -11,15 +11,15 @@ MODELO:
   Nodos: 971
   Estratos suelo: Suelo Superior (E=50000 MPa, h=5.0m), Suelo Intermedio (E=80000 MPa, h=9.0m), Suelo Profundo (E=100000 MPa, h=6.0m)
   Material zapata: E=25000000 MPa (concreto rígido)
-  Peso total modelo: 15466.35 kN
+  Peso total modelo: 15466347.90 kN
 
 ================================================================================
 FASE 1 - GRAVEDAD
 ================================================================================
   Tipo: Campo de tensiones por peso propio
-  Asentamiento máximo: 0.0459 mm
+  Asentamiento máximo: 45.9104 mm
   Asentamiento mínimo: -0.0000 mm
-  Asentamiento promedio: 0.0401 mm
+  Asentamiento promedio: 40.1459 mm
 
 ================================================================================
 FASE 2 - CARGA INCREMENTAL
@@ -27,18 +27,18 @@ FASE 2 - CARGA INCREMENTAL
   Tipo: Carga de columna
   Carga aplicada: 250.00 kN
   Presión contacto: 169.02 kPa
-  Asentamiento máximo: 0.0048 mm
+  Asentamiento máximo: 4.8379 mm
   Asentamiento mínimo: 0.0000 mm
-  Asentamiento promedio: 0.0028 mm
+  Asentamiento promedio: 2.8475 mm
 
 ================================================================================
 RESULTADOS TOTALES (FASE 1 + FASE 2)
 ================================================================================
-  Asentamiento máximo: 0.0501 mm
-  Asentamiento mínimo: 0.0442 mm
-  Asentamiento promedio: 0.0476 mm
-  Desviación estándar: 0.0016 mm
-  Diferencial: 0.0059 mm
+  Asentamiento máximo: 50.0719 mm
+  Asentamiento mínimo: 44.1979 mm
+  Asentamiento promedio: 47.6080 mm
+  Desviación estándar: 1.5937 mm
+  Diferencial: 5.8739 mm
   Relación diferencial: 0.1173
 
 ================================================================================

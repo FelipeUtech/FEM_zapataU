@@ -420,12 +420,12 @@ def main():
             estrato_idx = mat_id - 1
             rho = estratos_suelo[estrato_idx]['rho']
 
-        # Fuerza gravitacional total del elemento (en kN)
-        weight = vol * rho * g / 1000.0  # kN
+        # Fuerza gravitacional total del elemento (en N)
+        weight = vol * rho * g  # N (Newtons)
         total_weight += weight
 
         # Distribuir fuerza en 4 nodos (1/4 cada uno)
-        force_per_node = -weight / 4.0  # Negativo = hacia abajo en Z
+        force_per_node = -weight / 4.0  # Negativo = hacia abajo en Z, en N
 
         node_forces[n1][2] += force_per_node
         node_forces[n2][2] += force_per_node
@@ -441,7 +441,7 @@ def main():
             ops.load(nid, float(force[0]), float(force[1]), float(force[2]))
 
     print(f"✓ Fuerzas gravitacionales aplicadas")
-    print(f"  Peso total del modelo: {total_weight:.2f} kN")
+    print(f"  Peso total del modelo: {total_weight/1000:.2f} kN ({total_weight:.0f} N)")
     print(f"  Nodos con carga gravitacional: {len([f for f in node_forces.values() if abs(f[2]) > 1e-10])}")
 
     # -------------------------
@@ -541,14 +541,15 @@ def main():
                 zapata_nodes.append(nid)
 
     if len(zapata_nodes) > 0:
-        carga_por_nodo = -carga_total / len(zapata_nodes)  # Negativa (hacia abajo)
+        carga_por_nodo_kN = -carga_total / len(zapata_nodes)  # Negativa (hacia abajo), en kN
+        carga_por_nodo_N = carga_por_nodo_kN * 1000  # Convertir a N para OpenSees
 
         for nid in zapata_nodes:
-            ops.load(nid, 0.0, 0.0, carga_por_nodo)
+            ops.load(nid, 0.0, 0.0, carga_por_nodo_N)
 
         print(f"✓ Carga incremental aplicada: {carga_total:.2f} kN")
         print(f"  Nodos cargados: {len(zapata_nodes)}")
-        print(f"  Carga por nodo: {carga_por_nodo:.4f} kN")
+        print(f"  Carga por nodo: {carga_por_nodo_kN:.4f} kN ({carga_por_nodo_N:.2f} N)")
     else:
         print("❌ Error: No se pudieron identificar nodos para aplicar cargas")
         sys.exit(1)
