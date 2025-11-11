@@ -48,7 +48,11 @@ pv.global_theme.font.label_size = 10
 
 
 def configurar_camara_isometrica(plotter, mesh):
-    """Configura una vista isométrica estándar (ISO 45°)."""
+    """
+    Configura una vista isométrica mirando hacia el centro de la zapata.
+    La cámara está posicionada para ver la zapata desde el primer cuadrante,
+    con rotación de 180° para que el centro esté en primer plano.
+    """
     bounds = mesh.bounds
     center = mesh.center
 
@@ -57,18 +61,18 @@ def configurar_camara_isometrica(plotter, mesh):
                        (bounds[3]-bounds[2])**2 +
                        (bounds[5]-bounds[4])**2)
 
-    # Posición isométrica estándar (45°, 35.264°)
-    # Vector isométrico normalizado
+    # Posición isométrica mirando hacia la zapata (rotado 180°)
+    # La cámara está en el lado NEGATIVO de X e Y para mirar hacia el origen
     distance = diagonal * 2.0
     camera_pos = [
-        center[0] + distance * 0.7071,  # cos(45°)
-        center[1] + distance * 0.7071,  # cos(45°)
-        center[2] + distance * 0.5774   # sin(35.264°)
+        center[0] - distance * 0.7071,  # -cos(45°) - rotado 180°
+        center[1] - distance * 0.7071,  # -cos(45°) - rotado 180°
+        center[2] + distance * 0.5774   # sin(35.264°) - altura estándar
     ]
 
     plotter.camera_position = [
         camera_pos,      # Posición de cámara
-        center,          # Punto focal
+        center,          # Punto focal (centro del modelo)
         (0, 0, 1)        # Vector up (Z hacia arriba)
     ]
 
@@ -128,17 +132,18 @@ def crear_vista_modelo(mesh, output_file, titulo="Modelo FEM - Vista Isométrica
                 colors[i] = colores_mat[dom]
 
         # Agregar malla con colores por material
+        # smooth_shading=False para mostrar aristas reales del dominio
         plotter.add_mesh(
             mesh,
             scalars=colors,
             rgb=True,
             show_edges=True,
             edge_color='black',
-            line_width=0.5,
+            line_width=0.8,
             opacity=1.0,
-            smooth_shading=True,
-            specular=0.3,
-            specular_power=15
+            smooth_shading=False,  # Aristas reales, no suavizado
+            specular=0.2,
+            specular_power=10
         )
 
         # Crear leyenda personalizada
@@ -165,35 +170,39 @@ def crear_vista_modelo(mesh, output_file, titulo="Modelo FEM - Vista Isométrica
     # Configurar cámara isométrica
     configurar_camara_isometrica(plotter, mesh)
 
-    # Agregar ejes de referencia
+    # Agregar ejes de referencia en esquina inferior izquierda
     try:
         plotter.add_axes(
             xlabel='X (m)',
             ylabel='Y (m)',
             zlabel='Z (m)',
-            line_width=3,
-            color='black'
+            line_width=4,
+            color='black',
+            x_color='red',
+            y_color='green',
+            z_color='blue'
         )
     except Exception as e:
         print(f"  Advertencia: No se pudieron agregar ejes: {e}")
 
-    # Título
+    # Título en la parte superior central (sin superposición)
     plotter.add_text(
         titulo,
         position='upper_edge',
-        font_size=18,
+        font_size=20,
         color='black',
         font='arial'
     )
 
-    # Información del modelo
+    # Información del modelo en la parte inferior (separada del borde)
     info_text = f"Nodos: {mesh.n_points:,} | Elementos: {mesh.n_cells:,}"
     plotter.add_text(
         info_text,
-        position='lower_edge',
-        font_size=12,
+        position=(0.5, 0.02),  # Posición absoluta (x, y) normalizada
+        font_size=14,
         color='black',
-        font='arial'
+        font='arial',
+        viewport=True  # Usar coordenadas de viewport
     )
 
     # Renderizar y guardar
@@ -235,30 +244,31 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
     vmin, vmax = data.min(), data.max()
 
     # Agregar malla con escala de colores
+    # smooth_shading=False para mostrar aristas reales
     plotter.add_mesh(
         mesh,
         scalars=campo,
         cmap=cmap,
         show_edges=True,
         edge_color='black',
-        line_width=0.3,
+        line_width=0.5,
         opacity=1.0,
-        smooth_shading=True,
-        specular=0.2,
+        smooth_shading=False,  # Aristas reales, no suavizado
+        specular=0.15,
         clim=[vmin, vmax],
         scalar_bar_args={
             'title': f'Desplazamiento ({unidades})',
-            'title_font_size': 16,
-            'label_font_size': 14,
+            'title_font_size': 18,
+            'label_font_size': 15,
             'n_labels': 8,
             'italic': False,
             'fmt': '%.2f',
             'font_family': 'arial',
             'vertical': True,
-            'height': 0.7,
-            'width': 0.08,
-            'position_x': 0.88,
-            'position_y': 0.15,
+            'height': 0.65,
+            'width': 0.09,
+            'position_x': 0.87,
+            'position_y': 0.17,
             'color': 'black'
         }
     )
@@ -266,35 +276,39 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
     # Configurar cámara
     configurar_camara_isometrica(plotter, mesh)
 
-    # Ejes
+    # Ejes con colores diferenciados
     try:
         plotter.add_axes(
             xlabel='X (m)',
             ylabel='Y (m)',
             zlabel='Z (m)',
-            line_width=3,
-            color='black'
+            line_width=4,
+            color='black',
+            x_color='red',
+            y_color='green',
+            z_color='blue'
         )
     except Exception as e:
         print(f"  Advertencia: No se pudieron agregar ejes: {e}")
 
-    # Título
+    # Título en la parte superior (sin superposición con barra de colores)
     plotter.add_text(
         titulo,
         position='upper_edge',
-        font_size=18,
+        font_size=20,
         color='black',
         font='arial'
     )
 
-    # Estadísticas
+    # Estadísticas en la parte inferior (separadas del borde)
     info_text = f"Máx: {vmax:.2f} {unidades} | Mín: {vmin:.2f} {unidades} | Media: {data.mean():.2f} {unidades}"
     plotter.add_text(
         info_text,
-        position='lower_edge',
-        font_size=12,
+        position=(0.45, 0.02),  # Posición absoluta, más centrada
+        font_size=14,
         color='black',
-        font='arial'
+        font='arial',
+        viewport=True
     )
 
     # Renderizar
