@@ -27,19 +27,19 @@ FASE 2 - CARGA INCREMENTAL
   Tipo: Carga de columna
   Carga aplicada: 250.00 kN
   Presión contacto: 169.02 kPa
-  Asentamiento máximo: 64.9979 mm
+  Asentamiento máximo: 43.0230 mm
   Asentamiento mínimo: 0.0000 mm
-  Asentamiento promedio: 23.8362 mm
+  Asentamiento promedio: 23.4245 mm
 
 ================================================================================
 RESULTADOS TOTALES (FASE 1 + FASE 2)
 ================================================================================
-  Asentamiento máximo: 243.8615 mm
-  Asentamiento mínimo: 170.7378 mm
-  Asentamiento promedio: 202.6597 mm
-  Desviación estándar: 16.3119 mm
-  Diferencial: 73.1237 mm
-  Relación diferencial: 0.2999
+  Asentamiento máximo: 219.0080 mm
+  Asentamiento mínimo: 170.7100 mm
+  Asentamiento promedio: 199.8638 mm
+  Desviación estándar: 12.4337 mm
+  Diferencial: 48.2980 mm
+  Relación diferencial: 0.2205
 
 ================================================================================
 

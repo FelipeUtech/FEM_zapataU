@@ -581,17 +581,59 @@ def main():
     print(f"  Nodos en interfaz zapata-suelo: {len([n for n in zapata_nodes_original if n in nodos_interfaz])}")
     print(f"  Nodos interiores (sin interfaz): {len(zapata_nodes_interior)}")
 
-    # Usar solo nodos interiores para aplicar carga
-    zapata_nodes = zapata_nodes_interior
+    # -------------------------
+    # EXCLUIR NODOS DE LOS BORDES DEL TOPE
+    # -------------------------
+    print("\nFiltrando nodos de bordes del tope...")
+
+    # Tolerancia para identificar nodos en los bordes
+    tol_borde = 0.05  # metros
+
+    # Límites del área de zapata (genérico para modelo 1/4 o completo)
+    # B_modelo y L_modelo ya están definidos arriba
+    x_borde_min = 0.0
+    x_borde_max = B_modelo
+    y_borde_min = 0.0
+    y_borde_max = L_modelo
+
+    # Filtrar nodos del tope excluyendo los que están en los bordes
+    zapata_nodes_centro = []
+    nodos_en_borde = 0
+
+    for nid in zapata_nodes_interior:
+        coords = node_coords[nid]
+        x, y = coords[0], coords[1]
+
+        # Verificar si el nodo está en algún borde
+        en_borde_x0 = abs(x - x_borde_min) < tol_borde
+        en_borde_xmax = abs(x - x_borde_max) < tol_borde
+        en_borde_y0 = abs(y - y_borde_min) < tol_borde
+        en_borde_ymax = abs(y - y_borde_max) < tol_borde
+
+        en_algun_borde = en_borde_x0 or en_borde_xmax or en_borde_y0 or en_borde_ymax
+
+        if not en_algun_borde:
+            zapata_nodes_centro.append(nid)
+        else:
+            nodos_en_borde += 1
+
+    print(f"  Total nodos en tope: {len(zapata_nodes_interior)}")
+    print(f"  Nodos en bordes (X=0, X={B_modelo:.2f}, Y=0, Y={L_modelo:.2f}): {nodos_en_borde}")
+    print(f"  Nodos en centro (sin bordes): {len(zapata_nodes_centro)}")
+
+    # Usar solo nodos del centro para aplicar carga
+    zapata_nodes = zapata_nodes_centro
 
     # -------------------------
     # DISTRIBUIR CARGA EN NODOS INTERIORES
     # -------------------------
-    # Distribuir carga entre nodos del tope de zapata (solo interiores)
+    # Distribuir carga entre nodos del centro del tope de zapata
     if len(zapata_nodes) == 0:
-        print("⚠️  Advertencia: No se encontraron nodos interiores en el tope de la zapata")
-        print("    Usando todos los nodos del tope (incluyendo interfaz)")
+        print("⚠️  Advertencia: No se encontraron nodos en el centro del tope de la zapata")
+        print("    Usando todos los nodos del tope (incluyendo bordes)")
         zapata_nodes = zapata_nodes_original
+
+    print(f"\n✓ Aplicando carga en {len(zapata_nodes)} nodos del tope de zapata")
 
     if len(zapata_nodes) > 0:
         carga_por_nodo_kN = -carga_total / len(zapata_nodes)  # Negativa (hacia abajo), en kN
