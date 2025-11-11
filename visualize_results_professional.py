@@ -171,12 +171,13 @@ def crear_vista_modelo(mesh, output_file, titulo="Modelo FEM - Vista Isométrica
     configurar_camara_isometrica(plotter, mesh)
 
     # Agregar ejes de referencia en esquina inferior izquierda
+    # Textos más pequeños para mejor legibilidad
     try:
         plotter.add_axes(
-            xlabel='X (m)',
-            ylabel='Y (m)',
-            zlabel='Z (m)',
-            line_width=4,
+            xlabel='X',
+            ylabel='Y',
+            zlabel='Z',
+            line_width=3,
             color='black',
             x_color='red',
             y_color='green',
@@ -258,16 +259,16 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
         clim=[vmin, vmax],
         scalar_bar_args={
             'title': f'Desplazamiento ({unidades})',
-            'title_font_size': 18,
-            'label_font_size': 15,
+            'title_font_size': 22,  # Aumentado para mejor legibilidad
+            'label_font_size': 18,  # Aumentado para mejor legibilidad
             'n_labels': 8,
             'italic': False,
             'fmt': '%.2f',
             'font_family': 'arial',
             'vertical': True,
             'height': 0.65,
-            'width': 0.09,
-            'position_x': 0.87,
+            'width': 0.10,  # Ligeramente más ancho para acomodar texto
+            'position_x': 0.86,
             'position_y': 0.17,
             'color': 'black'
         }
@@ -276,13 +277,13 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
     # Configurar cámara
     configurar_camara_isometrica(plotter, mesh)
 
-    # Ejes con colores diferenciados
+    # Ejes con colores diferenciados y textos más pequeños
     try:
         plotter.add_axes(
-            xlabel='X (m)',
-            ylabel='Y (m)',
-            zlabel='Z (m)',
-            line_width=4,
+            xlabel='X',
+            ylabel='Y',
+            zlabel='Z',
+            line_width=3,
             color='black',
             x_color='red',
             y_color='green',
@@ -421,70 +422,27 @@ def main():
     # Lista de imágenes generadas
     imagenes_generadas = []
 
-    # 1. Vista del modelo por materiales
-    print("\n1. Generando vista isométrica del modelo...")
-    img_modelo = 'visualizaciones/modelo_isometrico.png'
-    crear_vista_modelo(mesh, img_modelo,
-                      titulo="Modelo FEM - Vista Isométrica por Materiales")
-    imagenes_generadas.append((
-        img_modelo,
-        "Modelo de Elementos Finitos",
-        "Vista isométrica mostrando la discretización en estratos de suelo y zapata de concreto"
-    ))
-
-    # 2. Desplazamientos totales
-    if 'Settlement_total_mm' in mesh.point_data:
-        print("\n2. Generando vista de desplazamientos totales...")
-        img_total = 'visualizaciones/desplazamientos_total.png'
-        crear_vista_desplazamientos(
-            mesh,
-            'Settlement_total_mm',
-            img_total,
-            titulo="Desplazamientos Verticales Totales (Fase 1 + Fase 2)",
-            unidades="mm",
-            cmap='turbo'
-        )
-        imagenes_generadas.append((
-            img_total,
-            "Desplazamientos Verticales Totales",
-            "Combinación de asentamientos por gravedad y carga de columna"
-        ))
-
-    # 3. Desplazamientos fase 1 (gravedad)
-    if 'Settlement_gravedad_mm' in mesh.point_data:
-        print("\n3. Generando vista de desplazamientos por gravedad...")
-        img_grav = 'visualizaciones/desplazamientos_gravedad.png'
-        crear_vista_desplazamientos(
-            mesh,
-            'Settlement_gravedad_mm',
-            img_grav,
-            titulo="Desplazamientos Verticales - Fase 1: Gravedad",
-            unidades="mm",
-            cmap='viridis'
-        )
-        imagenes_generadas.append((
-            img_grav,
-            "Fase 1: Asentamientos por Peso Propio",
-            "Campo de desplazamientos inducido por la gravedad del sistema"
-        ))
-
-    # 4. Desplazamientos fase 2 (carga)
+    # SOLO GENERAR: Desplazamientos fase 2 (carga)
+    # Mapa de calor: azul (mínimo) a rojo (máximo)
     if 'Settlement_carga_mm' in mesh.point_data:
-        print("\n4. Generando vista de desplazamientos por carga incremental...")
+        print("\n1. Generando vista de desplazamientos por carga incremental...")
         img_carga = 'visualizaciones/desplazamientos_carga.png'
         crear_vista_desplazamientos(
             mesh,
             'Settlement_carga_mm',
             img_carga,
-            titulo="Desplazamientos Verticales - Fase 2: Carga Incremental",
+            titulo="Asentamientos por Carga de Columna (Fase 2)",
             unidades="mm",
-            cmap='plasma'
+            cmap='coolwarm'  # Azul (mínimo) -> Blanco (medio) -> Rojo (máximo)
         )
         imagenes_generadas.append((
             img_carga,
             "Fase 2: Asentamientos por Carga de Columna",
             "Desplazamientos adicionales inducidos por la carga de 250 kN (modelo 1/4)"
         ))
+    else:
+        print("⚠️  Campo 'Settlement_carga_mm' no encontrado en los datos")
+        return
 
     # Preparar configuración para PDF
     configuracion = {
@@ -497,16 +455,8 @@ def main():
         'E_zapata': config.PROPIEDADES_ZAPATA['E']
     }
 
-    # Crear PDF multipágina
-    print("\n5. Generando PDF multipágina profesional...")
-    crear_pdf_multipagina(
-        imagenes_generadas,
-        'modelo_completo_reporte.pdf',
-        configuracion
-    )
-
-    # También crear PDFs individuales
-    print("\n6. Generando PDFs individuales...")
+    # Crear PDF individual
+    print("\n2. Generando PDF de alta resolución...")
     for img_file, titulo, descripcion in imagenes_generadas:
         pdf_individual = img_file.replace('.png', '.pdf')
         with PdfPages(pdf_individual) as pdf:
@@ -514,18 +464,24 @@ def main():
             fig, ax = plt.subplots(figsize=(11, 8.5))
             ax.imshow(img)
             ax.axis('off')
-            fig.suptitle(titulo, fontsize=14, fontweight='bold')
+            fig.suptitle(titulo, fontsize=16, fontweight='bold')
+            # Agregar descripción
+            fig.text(0.5, 0.02, descripcion, ha='center', fontsize=11, style='italic')
             pdf.savefig(fig, bbox_inches='tight', dpi=300)
             plt.close()
         print(f"  ✓ {pdf_individual}")
 
     print("\n" + "="*80)
-    print("VISUALIZACIONES COMPLETADAS")
+    print("VISUALIZACIÓN COMPLETADA")
     print("="*80)
     print("\nArchivos generados:")
-    print("  • modelo_completo_reporte.pdf (reporte multipágina)")
-    print(f"  • {len(imagenes_generadas)} PDFs individuales en visualizaciones/")
-    print(f"  • {len(imagenes_generadas)} imágenes PNG de alta resolución")
+    print(f"  • visualizaciones/desplazamientos_carga.pdf (PDF de alta resolución)")
+    print(f"  • visualizaciones/desplazamientos_carga.png (imagen PNG 3x)")
+    print("\nCaracterísticas:")
+    print("  • Mapa de calor: Azul (mínimo) → Rojo (máximo)")
+    print("  • Ejes: Textos optimizados para legibilidad")
+    print("  • Leyenda: Textos aumentados (22pt título, 18pt etiquetas)")
+    print("  • Aristas reales visibles (sin suavizado)")
     print("\n" + "="*80)
 
 
