@@ -15,8 +15,3 @@ ENV/
 .idea/
 *.swp
 *.swo
-
-# Resultados de análisis
-settlements_*.csv
-analysis_summary_*.txt
-resultados_*.vtu

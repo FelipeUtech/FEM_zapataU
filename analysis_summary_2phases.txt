@@ -1,0 +1,45 @@
+================================================================================
+REPORTE DE ANÁLISIS DE ZAPATA - 2 FASES
+================================================================================
+
+MODELO:
+  Zapata: 2.0m × 3.0m × 0.4m
+  Dominio: 5.0m × 7.5m × 20.0m
+  Modelo: Cuarto con simetría
+  Malla: GMSH Tetraédrica
+  Elementos: 3865 elementos tetraédricos
+  Nodos: 971
+  Estratos suelo: Suelo Superior (E=50000 MPa, h=5.0m), Suelo Intermedio (E=80000 MPa, h=9.0m), Suelo Profundo (E=100000 MPa, h=6.0m)
+  Material zapata: E=25000000 MPa (concreto rígido)
+  Peso total modelo: 15466.35 kN
+
+================================================================================
+FASE 1 - GRAVEDAD
+================================================================================
+  Tipo: Campo de tensiones por peso propio
+  Asentamiento máximo: 0.0459 mm
+  Asentamiento mínimo: -0.0000 mm
+  Asentamiento promedio: 0.0401 mm
+
+================================================================================
+FASE 2 - CARGA INCREMENTAL
+================================================================================
+  Tipo: Carga de columna
+  Carga aplicada: 250.00 kN
+  Presión contacto: 169.02 kPa
+  Asentamiento máximo: 0.0048 mm
+  Asentamiento mínimo: 0.0000 mm
+  Asentamiento promedio: 0.0028 mm
+
+================================================================================
+RESULTADOS TOTALES (FASE 1 + FASE 2)
+================================================================================
+  Asentamiento máximo: 0.0501 mm
+  Asentamiento mínimo: 0.0442 mm
+  Asentamiento promedio: 0.0476 mm
+  Desviación estándar: 0.0016 mm
+  Diferencial: 0.0059 mm
+  Relación diferencial: 0.1173
+
+================================================================================
+
