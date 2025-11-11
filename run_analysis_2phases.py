@@ -245,9 +245,9 @@ def main():
     # Límites de la zapata en planta (modelo 1/4)
     # Para modelo 1/4, la zapata empieza en el origen (0, 0)
     x_min_zapata = 0.0
-    x_max_zapata = B_modelo / 2
+    x_max_zapata = B_modelo  # Ya es B/2, no dividir otra vez
     y_min_zapata = 0.0
-    y_max_zapata = L_modelo / 2
+    y_max_zapata = L_modelo  # Ya es L/2, no dividir otra vez
 
     zapata_nodes = []
     for nid, coords in node_coords.items():
