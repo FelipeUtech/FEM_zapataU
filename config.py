@@ -16,7 +16,7 @@ ESTRATOS_SUELO = [
     {
         'nombre': 'Suelo Superior',
         'espesor': 5.0,   # metros
-        'E': 50e6,        # Módulo de Young (Pa)
+        'E': 5e6,         # Módulo de Young (Pa) - 5 MPa (suelo muy blando)
         'nu': 0.3,        # Coeficiente de Poisson
         'rho': 2000,      # Densidad (kg/m³)
         'color': [0.9, 0.85, 0.7],  # Color claro (RGB)
@@ -24,7 +24,7 @@ ESTRATOS_SUELO = [
     {
         'nombre': 'Suelo Intermedio',
         'espesor': 9.0,
-        'E': 80e6,
+        'E': 15e6,        # 15 MPa (suelo blando)
         'nu': 0.3,
         'rho': 2100,
         'color': [0.7, 0.6, 0.4],   # Color medio
@@ -32,7 +32,7 @@ ESTRATOS_SUELO = [
     {
         'nombre': 'Suelo Profundo',
         'espesor': 6.0,
-        'E': 100e6,
+        'E': 100e6,       # 100 MPa (suelo denso)
         'nu': 0.3,
         'rho': 2200,
         'color': [0.5, 0.4, 0.3],   # Color oscuro
