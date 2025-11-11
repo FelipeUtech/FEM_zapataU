@@ -190,7 +190,7 @@ def crear_vista_modelo(mesh, output_file, titulo="Modelo FEM - Vista Isométrica
     plotter.add_text(
         titulo,
         position='upper_edge',
-        font_size=20,
+        font_size=24,  # Aumentado para mejor visibilidad
         color='black',
         font='arial'
     )
@@ -200,7 +200,7 @@ def crear_vista_modelo(mesh, output_file, titulo="Modelo FEM - Vista Isométrica
     plotter.add_text(
         info_text,
         position=(0.5, 0.02),  # Posición absoluta (x, y) normalizada
-        font_size=14,
+        font_size=16,  # Aumentado para mejor legibilidad
         color='black',
         font='arial',
         viewport=True  # Usar coordenadas de viewport
@@ -296,7 +296,7 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
     plotter.add_text(
         titulo,
         position='upper_edge',
-        font_size=20,
+        font_size=24,  # Aumentado para mejor visibilidad
         color='black',
         font='arial'
     )
@@ -306,7 +306,7 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
     plotter.add_text(
         info_text,
         position=(0.45, 0.02),  # Posición absoluta, más centrada
-        font_size=14,
+        font_size=16,  # Aumentado para mejor legibilidad
         color='black',
         font='arial',
         viewport=True
@@ -329,39 +329,60 @@ def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
         configuracion: Diccionario con parámetros del modelo
     """
     with PdfPages(output_pdf) as pdf:
-        # Página 1: Portada
+        # Página 1: Portada Profesional
         fig = plt.figure(figsize=(11, 8.5))
-        fig.suptitle('ANÁLISIS DE ELEMENTO FINITO\nZAPATA DE CONCRETO',
-                    fontsize=24, fontweight='bold', y=0.7)
+        ax = fig.add_subplot(111)
+        ax.axis('off')
 
-        # Información del proyecto
-        info_texto = f"""
-Configuración del Modelo:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Zapata: {configuracion['B']}m × {configuracion['L']}m × {configuracion['h']}m
+        # Encabezado principal
+        fig.text(0.5, 0.85, 'ANÁLISIS DE ELEMENTOS FINITOS',
+                ha='center', fontsize=32, fontweight='bold', color='#1f4788')
+
+        fig.text(0.5, 0.78, 'Zapata de Concreto sobre Estratos de Suelo',
+                ha='center', fontsize=20, fontweight='normal', color='#2c5aa0')
+
+        # Línea decorativa
+        fig.text(0.5, 0.73, '━' * 60,
+                ha='center', fontsize=12, color='#1f4788')
+
+        # Información del proyecto en secciones
+        info_zapata = f"""GEOMETRÍA DE LA ZAPATA
+Dimensiones: {configuracion['B']}m × {configuracion['L']}m × {configuracion['h']}m
 Profundidad de desplante: {configuracion['Df']}m
+Material: Concreto E={configuracion['E_zapata']/1e9:.0f} GPa"""
+
+        info_suelo = f"""ESTRATIFICACIÓN DEL SUELO
+{chr(10).join([f"{e['nombre']}: h={e['espesor']}m, E={e['E']/1e6:.0f} MPa" for e in configuracion['estratos']])}"""
+
+        info_analisis = f"""ANÁLISIS Y CARGAS
+Tipo de análisis: 2 Fases (Gravedad + Carga Incremental)
 Carga de columna: {configuracion['P_column']:.0f} kN
+Modelo: 1/4 con condiciones de simetría
+Elemento: Tetraédrico lineal (FourNodeTetrahedron)"""
 
-Estratos de Suelo:
-{chr(10).join([f"  • {e['nombre']}: {e['espesor']}m, E={e['E']/1e6:.0f} MPa" for e in configuracion['estratos']])}
+        # Colocar información en bloques
+        fig.text(0.5, 0.60, info_zapata,
+                ha='center', va='top',
+                fontsize=13, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.8', facecolor='#e8f4f8',
+                         edgecolor='#1f4788', linewidth=1.5))
 
-Material Zapata:
-  • Concreto: E={configuracion['E_zapata']/1e9:.0f} GPa
+        fig.text(0.5, 0.42, info_suelo,
+                ha='center', va='top',
+                fontsize=13, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.8', facecolor='#f0f8e8',
+                         edgecolor='#2c5aa0', linewidth=1.5))
 
-Análisis:
-  • Tipo: 2 Fases (Gravedad + Carga)
-  • Modelo: 1/4 con simetría
-  • Elementos: Tetraédricos lineales
+        fig.text(0.5, 0.22, info_analisis,
+                ha='center', va='top',
+                fontsize=13, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.8', facecolor='#fff8e8',
+                         edgecolor='#1f4788', linewidth=1.5))
 
-Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-        """
+        # Pie de página
+        fig.text(0.5, 0.05, f'Fecha: {datetime.now().strftime("%d de %B de %Y")}',
+                ha='center', fontsize=11, style='italic', color='#555555')
 
-        plt.text(0.5, 0.4, info_texto,
-                ha='center', va='center',
-                fontsize=11, fontfamily='monospace',
-                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
-
-        plt.axis('off')
         pdf.savefig(fig, bbox_inches='tight', dpi=300)
         plt.close()
 
@@ -374,13 +395,13 @@ Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 ax.imshow(img)
                 ax.axis('off')
 
-                # Título en la parte superior
-                fig.suptitle(titulo, fontsize=16, fontweight='bold', y=0.98)
+                # Título en la parte superior (aumentado)
+                fig.suptitle(titulo, fontsize=20, fontweight='bold', y=0.98)
 
-                # Descripción en la parte inferior
+                # Descripción en la parte inferior (aumentada)
                 if descripcion:
                     fig.text(0.5, 0.02, descripcion,
-                            ha='center', fontsize=10, style='italic')
+                            ha='center', fontsize=13, style='italic')
 
                 pdf.savefig(fig, bbox_inches='tight', dpi=300)
                 plt.close()
@@ -422,10 +443,21 @@ def main():
     # Lista de imágenes generadas
     imagenes_generadas = []
 
-    # SOLO GENERAR: Desplazamientos fase 2 (carga)
+    # 1. Vista del modelo por materiales (estratificación)
+    print("\n1. Generando vista de estratificación por materiales...")
+    img_modelo = 'visualizaciones/modelo_estratificacion.png'
+    crear_vista_modelo(mesh, img_modelo,
+                      titulo="Modelo FEM - Estratificación del Suelo")
+    imagenes_generadas.append((
+        img_modelo,
+        "Estratificación del Modelo",
+        "Vista isométrica mostrando los estratos de suelo y zapata de concreto"
+    ))
+
+    # 2. Desplazamientos fase 2 (carga)
     # Mapa de calor: azul (mínimo) a rojo (máximo)
     if 'Settlement_carga_mm' in mesh.point_data:
-        print("\n1. Generando vista de desplazamientos por carga incremental...")
+        print("\n2. Generando vista de asentamientos por carga de columna...")
         img_carga = 'visualizaciones/desplazamientos_carga.png'
         crear_vista_desplazamientos(
             mesh,
@@ -455,8 +487,16 @@ def main():
         'E_zapata': config.PROPIEDADES_ZAPATA['E']
     }
 
-    # Crear PDF individual
-    print("\n2. Generando PDF de alta resolución...")
+    # Crear PDF multipágina con portada
+    print("\n3. Generando PDF multipágina con portada profesional...")
+    crear_pdf_multipagina(
+        imagenes_generadas,
+        'Reporte_Analisis_FEM.pdf',
+        configuracion
+    )
+
+    # También crear PDFs individuales
+    print("\n4. Generando PDFs individuales...")
     for img_file, titulo, descripcion in imagenes_generadas:
         pdf_individual = img_file.replace('.png', '.pdf')
         with PdfPages(pdf_individual) as pdf:
@@ -464,23 +504,27 @@ def main():
             fig, ax = plt.subplots(figsize=(11, 8.5))
             ax.imshow(img)
             ax.axis('off')
-            fig.suptitle(titulo, fontsize=16, fontweight='bold')
+            fig.suptitle(titulo, fontsize=18, fontweight='bold')
             # Agregar descripción
-            fig.text(0.5, 0.02, descripcion, ha='center', fontsize=11, style='italic')
+            fig.text(0.5, 0.02, descripcion, ha='center', fontsize=12, style='italic')
             pdf.savefig(fig, bbox_inches='tight', dpi=300)
             plt.close()
         print(f"  ✓ {pdf_individual}")
 
     print("\n" + "="*80)
-    print("VISUALIZACIÓN COMPLETADA")
+    print("VISUALIZACIONES COMPLETADAS")
     print("="*80)
     print("\nArchivos generados:")
-    print(f"  • visualizaciones/desplazamientos_carga.pdf (PDF de alta resolución)")
-    print(f"  • visualizaciones/desplazamientos_carga.png (imagen PNG 3x)")
+    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con portada)")
+    print(f"  • visualizaciones/modelo_estratificacion.pdf (estratificación)")
+    print(f"  • visualizaciones/desplazamientos_carga.pdf (asentamientos)")
+    print(f"  • 2 imágenes PNG de alta resolución (3x escala)")
     print("\nCaracterísticas:")
-    print("  • Mapa de calor: Azul (mínimo) → Rojo (máximo)")
-    print("  • Ejes: Textos optimizados para legibilidad")
-    print("  • Leyenda: Textos aumentados (22pt título, 18pt etiquetas)")
+    print("  • Portada profesional con información del modelo")
+    print("  • Página 2: Estratificación por materiales")
+    print("  • Página 3: Asentamientos por carga (azul → rojo)")
+    print("  • Textos aumentados: Títulos 24pt, Info 16pt")
+    print("  • Leyenda: 22pt título, 18pt etiquetas")
     print("  • Aristas reales visibles (sin suavizado)")
     print("\n" + "="*80)
 
