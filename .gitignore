@@ -19,3 +19,6 @@ ENV/
 # Logs y archivos temporales
 *.log
 *_old.*
+
+# Visualizaciones (imágenes temporales de alta resolución)
+visualizaciones/*.png
