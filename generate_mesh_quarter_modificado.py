@@ -173,10 +173,20 @@ print(f"  Tamaño elemento mínimo (zapata): {lc_min:.3f}m")
 print(f"  Tamaño elemento máximo (fronteras): {lc_max:.3f}m")
 
 def size_callback(dim, tag, x, y, z, lc):
-    """Calcula tamaño de elemento según distancia a zapata."""
-    dx = x - x_center
-    dy = y - y_center
-    dz = z - z_center
+    """Calcula tamaño de elemento constante en zapata, gradual afuera."""
+    # Verificar si está dentro o cerca de la zapata
+    dentro_x = (x >= x0) and (x <= x0 + foot_width)
+    dentro_y = (y >= y0) and (y <= y0 + foot_length)
+    dentro_z = (z >= z_base) and (z <= z_top)
+
+    # Si está dentro de la zapata, tamaño constante
+    if dentro_x and dentro_y and dentro_z:
+        return lc_min
+
+    # Calcular distancia mínima a la zapata
+    dx = max(0, max(x0 - x, x - (x0 + foot_width)))
+    dy = max(0, max(y0 - y, y - (y0 + foot_length)))
+    dz = max(0, max(z_base - z, z - z_top))
     dist = np.sqrt(dx**2 + dy**2 + dz**2)
 
     # Refinamiento gradual desde la zapata
