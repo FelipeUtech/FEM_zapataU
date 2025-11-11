@@ -15,7 +15,7 @@ ZAPATA = {
 ESTRATOS_SUELO = [
     {
         'nombre': 'Suelo Superior',
-        'espesor': 7.0,   # metros
+        'espesor': 5.0,   # metros
         'E': 50e6,        # Módulo de Young (Pa)
         'nu': 0.3,        # Coeficiente de Poisson
         'rho': 2000,      # Densidad (kg/m³)
@@ -23,7 +23,7 @@ ESTRATOS_SUELO = [
     },
     {
         'nombre': 'Suelo Intermedio',
-        'espesor': 7.0,
+        'espesor': 9.0,
         'E': 80e6,
         'nu': 0.3,
         'rho': 2100,
@@ -49,7 +49,7 @@ PROPIEDADES_ZAPATA = {
 # Parámetros de malla
 MALLA = {
     'graded': {
-        'dx_min': min(ZAPATA['B'], ZAPATA['L']) / 5,   # Tamaño mínimo cerca de la zapata (m)
+        'dx_min': min(ZAPATA['B'], ZAPATA['L']) / 10,   # Tamaño mínimo cerca de la zapata (m)
         'dx_max': 2.0,    # Tamaño máximo en fronteras (m)
     }
 }
