@@ -5,8 +5,8 @@ Archivo de configuración para la generación de mallas de zapatas.
 
 # Parámetros de la zapata
 ZAPATA = {
-    'B': 1.0,      # Ancho (m)
-    'L': 1.0,      # Largo (m)
+    'B': 2.0,      # Ancho (m)
+    'L': 3.0,      # Largo (m)
     'h': 0.4,      # Altura/espesor (m)
     'Df': 1.2,     # Profundidad de desplante (m)
 }
