@@ -46,7 +46,7 @@ PROPIEDADES_ZAPATA = {
 # Parámetros de malla
 MALLA = {
     'graded': {
-        'dx_min': 0.05,   # Tamaño mínimo cerca de la zapata (m)
+        'dx_min': min(ZAPATA['B'], ZAPATA['L']) / 5,   # Tamaño mínimo cerca de la zapata (m)
         'dx_max': 2.0,    # Tamaño máximo en fronteras (m)
     }
 }
@@ -54,18 +54,19 @@ MALLA = {
 def obtener_dimensiones_dominio():
     """
     Calcula las dimensiones del dominio completo.
-    Regla típica: dominio debe ser al menos 5 veces el ancho de la zapata
+    Regla: dominio debe ser 5 veces la dimensión mayor entre L y B
     """
     B = ZAPATA['B']
     L = ZAPATA['L']
-    
+
     # Dimensiones del dominio (valores completos)
-    Lx = max(9.0, 5 * B)  # Al menos 9m o 5B
-    Ly = max(9.0, 5 * L)  # Al menos 9m o 5L
-    
+    dim_mayor = max(B, L)
+    Lx = 5 * dim_mayor
+    Ly = 5 * dim_mayor
+
     # Profundidad total
     Lz = sum(e['espesor'] for e in ESTRATOS_SUELO)
-    
+
     return {
         'Lx': Lx,
         'Ly': Ly,
