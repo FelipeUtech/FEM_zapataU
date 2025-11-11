@@ -8,7 +8,7 @@ ZAPATA = {
     'B': 2.0,      # Ancho (m)
     'L': 3.0,      # Largo (m)
     'h': 0.4,      # Altura/espesor (m)
-    'Df': 1.2,     # Profundidad de desplante (m)
+    'Df': 0.5,     # Profundidad de desplante (m)
 }
 
 # Estratos de suelo (de arriba hacia abajo)
