@@ -15,10 +15,11 @@ ZAPATA = {
 ESTRATOS_SUELO = [
     {
         'nombre': 'Suelo Superior',
-        'espesor': 10.0,  # metros
+        'espesor': 7.0,   # metros
         'E': 50e6,        # Módulo de Young (Pa)
         'nu': 0.3,        # Coeficiente de Poisson
         'rho': 2000,      # Densidad (kg/m³)
+        'color': [0.9, 0.85, 0.7],  # Color claro (RGB)
     },
     {
         'nombre': 'Suelo Intermedio',
@@ -26,13 +27,15 @@ ESTRATOS_SUELO = [
         'E': 80e6,
         'nu': 0.3,
         'rho': 2100,
+        'color': [0.7, 0.6, 0.4],   # Color medio
     },
     {
         'nombre': 'Suelo Profundo',
-        'espesor': 3.0,
+        'espesor': 6.0,
         'E': 100e6,
         'nu': 0.3,
         'rho': 2200,
+        'color': [0.5, 0.4, 0.3],   # Color oscuro
     },
 ]
 
@@ -54,15 +57,14 @@ MALLA = {
 def obtener_dimensiones_dominio():
     """
     Calcula las dimensiones del dominio completo.
-    Regla: dominio debe ser 5 veces la dimensión mayor entre L y B
+    Regla: dominio 5*B en X y 5*L en Y
     """
     B = ZAPATA['B']
     L = ZAPATA['L']
 
     # Dimensiones del dominio (valores completos)
-    dim_mayor = max(B, L)
-    Lx = 5 * dim_mayor
-    Ly = 5 * dim_mayor
+    Lx = 5 * B
+    Ly = 5 * L
 
     # Profundidad total
     Lz = sum(e['espesor'] for e in ESTRATOS_SUELO)
