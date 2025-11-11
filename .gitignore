@@ -15,3 +15,7 @@ ENV/
 .idea/
 *.swp
 *.swo
+
+# Logs y archivos temporales
+*.log
+*_old.*
