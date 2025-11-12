@@ -173,31 +173,59 @@ print(f"  Tamaño elemento mínimo (zapata): {lc_min:.3f}m")
 print(f"  Tamaño elemento máximo (fronteras): {lc_max:.3f}m")
 
 def size_callback(dim, tag, x, y, z, lc):
-    """Calcula tamaño de elemento constante en zapata, gradual afuera."""
+    """
+    Calcula tamaño de elemento con refinamiento gradual:
+    - Muy fino en zapata y primer estrato
+    - Crecimiento suave con profundidad
+    - Transición gradual en horizontal
+    """
     # Verificar si está dentro o cerca de la zapata
     dentro_x = (x >= x0) and (x <= x0 + foot_width)
     dentro_y = (y >= y0) and (y <= y0 + foot_length)
     dentro_z = (z >= z_base) and (z <= z_top)
 
-    # Si está dentro de la zapata, tamaño constante
+    # Si está dentro de la zapata, tamaño constante muy fino
     if dentro_x and dentro_y and dentro_z:
         return lc_min
 
-    # Calcular distancia mínima a la zapata
+    # Calcular distancia horizontal mínima a la zapata
     dx = max(0, max(x0 - x, x - (x0 + foot_width)))
     dy = max(0, max(y0 - y, y - (y0 + foot_length)))
-    dz = max(0, max(z_base - z, z - z_top))
-    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+    dist_horizontal = np.sqrt(dx**2 + dy**2)
 
-    # Refinamiento gradual desde la zapata
-    if dist < 0.5:
-        return lc_min
-    elif dist < 2.0:
-        # Transición suave
-        t = (dist - 0.5) / 1.5
-        return lc_min + (lc_max - lc_min) * t
+    # Factor de refinamiento vertical basado en profundidad
+    # Primer estrato (0 a -4.5m): muy refinado
+    # Estratos profundos: más grueso
+    profundidad = abs(z)  # z es negativo hacia abajo
+
+    if profundidad <= H1:  # Primer estrato (0 a -4.5m)
+        # Refinamiento progresivo dentro del primer estrato
+        factor_vertical = 1.0 + 0.3 * (profundidad / H1)  # Crece 30% en el estrato
+        lc_vertical = lc_min * factor_vertical
+    elif profundidad <= H1 + H2:  # Segundo estrato (-4.5 a -9m)
+        # Crecimiento más rápido en segundo estrato
+        depth_in_stratum = profundidad - H1
+        factor_vertical = 1.3 + 0.5 * (depth_in_stratum / H2)  # Crece 50% más
+        lc_vertical = lc_min * factor_vertical
+    else:  # Tercer estrato (-9 a -15m)
+        # Elementos más grandes en profundidad
+        factor_vertical = 1.8 + 0.4 * ((profundidad - H1 - H2) / H3)
+        lc_vertical = lc_min * factor_vertical
+
+    # Factor de refinamiento horizontal desde zapata
+    if dist_horizontal < 0.5:
+        lc_horizontal = lc_min
+    elif dist_horizontal < 2.0:
+        # Transición suave horizontal
+        t = (dist_horizontal - 0.5) / 1.5
+        lc_horizontal = lc_min + (lc_max - lc_min) * t
     else:
-        return lc_max
+        lc_horizontal = lc_max
+
+    # Tomar el máximo de ambos factores (más conservador)
+    size_final = min(max(lc_vertical, lc_horizontal), lc_max)
+
+    return size_final
 
 gmsh.model.mesh.setSizeCallback(size_callback)
 
