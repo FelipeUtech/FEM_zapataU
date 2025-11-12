@@ -964,43 +964,82 @@ def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
         configuracion: Diccionario con parámetros del modelo
     """
     with PdfPages(output_pdf) as pdf:
-        # Página 1: Portada Profesional
+        # ========================================================================
+        # Página 1: Portada Limpia
+        # ========================================================================
         fig = plt.figure(figsize=(11, 8.5))
         ax = fig.add_subplot(111)
         ax.axis('off')
 
         # Encabezado del proyecto
-        fig.text(0.5, 0.92, 'Asesoría Integral Obras Superficiales Proyecto Porvenir',
-                ha='center', fontsize=18, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.80, 'Asesoría Integral Obras Superficiales',
+                ha='center', fontsize=20, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.75, 'Proyecto Porvenir',
+                ha='center', fontsize=20, fontweight='bold', color='#1f4788')
+
+        # Línea decorativa superior
+        fig.text(0.5, 0.70, '━' * 50,
+                ha='center', fontsize=12, color='#1f4788')
 
         # Información del cliente y proyecto
-        fig.text(0.5, 0.86, 'Cliente: HEMCO Mineros Nicaragua',
-                ha='center', fontsize=14, fontweight='normal', color='#2c5aa0')
+        fig.text(0.5, 0.63, 'Cliente:',
+                ha='center', fontsize=14, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.59, 'HEMCO Mineros Nicaragua',
+                ha='center', fontsize=16, fontweight='normal', color='#2c5aa0')
 
-        fig.text(0.5, 0.82, 'Localización: Bonanza, Nicaragua',
-                ha='center', fontsize=14, fontweight='normal', color='#2c5aa0')
+        fig.text(0.5, 0.52, 'Localización:',
+                ha='center', fontsize=14, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.48, 'Bonanza, Nicaragua',
+                ha='center', fontsize=16, fontweight='normal', color='#2c5aa0')
 
-        # Línea decorativa
-        fig.text(0.5, 0.78, '━' * 60,
+        # Línea decorativa central
+        fig.text(0.5, 0.42, '━' * 50,
                 ha='center', fontsize=12, color='#1f4788')
 
         # Asunto
-        fig.text(0.5, 0.73, 'Asunto: Capacidad de Carga Estructuras de Planta de Procesos',
+        fig.text(0.5, 0.36, 'Asunto:',
+                ha='center', fontsize=14, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.315, 'Capacidad de Carga Estructuras',
+                ha='center', fontsize=16, fontweight='normal', color='#2c5aa0')
+        fig.text(0.5, 0.28, 'de Planta de Procesos',
+                ha='center', fontsize=16, fontweight='normal', color='#2c5aa0')
+
+        # Línea decorativa inferior
+        fig.text(0.5, 0.22, '━' * 50,
+                ha='center', fontsize=12, color='#1f4788')
+
+        # Pie de página
+        fig.text(0.5, 0.13, 'Calculó:',
+                ha='center', fontsize=13, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.09, 'Suelos & Rocas Ingeniería SAS',
                 ha='center', fontsize=15, fontweight='bold', color='#1f4788')
 
-        # Título del análisis
-        fig.text(0.5, 0.67, 'ANÁLISIS DE ELEMENTOS FINITOS',
-                ha='center', fontsize=24, fontweight='bold', color='#1f4788')
+        fig.text(0.5, 0.04, 'Fecha: Noviembre 2025',
+                ha='center', fontsize=12, style='italic', color='#555555')
+
+        pdf.savefig(fig, bbox_inches='tight', dpi=300)
+        plt.close()
+
+        # ========================================================================
+        # Página 2: Datos Técnicos de la Corrida
+        # ========================================================================
+        fig = plt.figure(figsize=(11, 8.5))
+        ax = fig.add_subplot(111)
+        ax.axis('off')
+
+        # Título de la página técnica
+        fig.text(0.5, 0.93, 'ANÁLISIS DE ELEMENTOS FINITOS',
+                ha='center', fontsize=22, fontweight='bold', color='#1f4788')
 
         # Nombre de la estructura
-        fig.text(0.5, 0.62, configuracion.get('nombre_estructura', ''),
-                ha='center', fontsize=20, fontweight='bold', color='#d62728')
+        fig.text(0.5, 0.88, configuracion.get('nombre_estructura', ''),
+                ha='center', fontsize=18, fontweight='bold', color='#d62728')
 
-        fig.text(0.5, 0.58, 'Zapata de Concreto sobre Estratos de Suelo',
-                ha='center', fontsize=14, fontweight='normal', color='#555555')
+        fig.text(0.5, 0.84, 'Zapata de Concreto sobre Estratos de Suelo',
+                ha='center', fontsize=13, fontweight='normal', color='#555555')
 
         # Línea decorativa
-        fig.text(0.5, 0.54, '━' * 60,
+        fig.text(0.5, 0.81, '━' * 60,
                 ha='center', fontsize=12, color='#1f4788')
 
         # Información técnica en bloques
@@ -1010,38 +1049,46 @@ Profundidad de desplante: {configuracion['Df']}m
 Material: Concreto E={configuracion['E_zapata']/1e9:.0f} GPa"""
 
         info_suelo = f"""ESTRATIFICACIÓN DEL SUELO
-{chr(10).join([f"{e['nombre']}: h={e['espesor']}m, E={e['E']/1e6:.0f} MPa" for e in configuracion['estratos']])}"""
+{chr(10).join([f"{e['nombre']}: h={e['espesor']}m, E={e['E']/1e6:.0f} MPa, ν={e['nu']}" for e in configuracion['estratos']])}"""
 
-        info_analisis = f"""ANÁLISIS Y CARGAS
-Tipo de análisis: 2 Fases (Gravedad + Carga Incremental)
+        info_cargas = f"""CARGAS APLICADAS
 Carga de columna: {configuracion['P_column']:.0f} kN
+Presión transmitida: {configuracion['P_column']/(configuracion['B']*configuracion['L']):.1f} kPa"""
+
+        info_analisis = f"""MODELADO Y ANÁLISIS
+Tipo de análisis: 2 Fases (Gravedad + Carga Incremental)
+Pasos de carga: 10 incrementos (10% cada uno)
 Modelo: 1/4 con condiciones de simetría
-Elemento: Tetraédrico lineal (FourNodeTetrahedron)"""
+Elemento: Tetraédrico lineal (FourNodeTetrahedron)
+Software: OpenSeesPy + PyVista"""
 
         # Colocar información en bloques
-        fig.text(0.5, 0.45, info_zapata,
+        fig.text(0.5, 0.72, info_zapata,
                 ha='center', va='top',
-                fontsize=12, fontfamily='monospace',
+                fontsize=11, fontfamily='monospace',
                 bbox=dict(boxstyle='round,pad=0.7', facecolor='#e8f4f8',
                          edgecolor='#1f4788', linewidth=1.5))
 
-        fig.text(0.5, 0.30, info_suelo,
+        fig.text(0.5, 0.56, info_suelo,
                 ha='center', va='top',
-                fontsize=12, fontfamily='monospace',
+                fontsize=11, fontfamily='monospace',
                 bbox=dict(boxstyle='round,pad=0.7', facecolor='#f0f8e8',
                          edgecolor='#2c5aa0', linewidth=1.5))
 
-        fig.text(0.5, 0.14, info_analisis,
+        fig.text(0.5, 0.40, info_cargas,
                 ha='center', va='top',
-                fontsize=12, fontfamily='monospace',
+                fontsize=11, fontfamily='monospace',
                 bbox=dict(boxstyle='round,pad=0.7', facecolor='#fff8e8',
+                         edgecolor='#d62728', linewidth=1.5))
+
+        fig.text(0.5, 0.24, info_analisis,
+                ha='center', va='top',
+                fontsize=11, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.7', facecolor='#f8f8ff',
                          edgecolor='#1f4788', linewidth=1.5))
 
-        # Pie de página con calculista y fecha
-        fig.text(0.5, 0.04, 'Calculó: Suelos & Rocas Ingeniería SAS',
-                ha='center', fontsize=12, fontweight='bold', color='#1f4788')
-
-        fig.text(0.5, 0.01, 'Fecha: Noviembre 2025',
+        # Pie de página
+        fig.text(0.5, 0.04, 'Datos Técnicos del Modelo',
                 ha='center', fontsize=11, style='italic', color='#555555')
 
         pdf.savefig(fig, bbox_inches='tight', dpi=300)
@@ -1317,7 +1364,7 @@ def main():
     print("VISUALIZACIONES COMPLETADAS")
     print("="*80)
     print("\nArchivos generados:")
-    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 8 páginas)")
+    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 9 páginas)")
     print(f"\n  PDFs individuales:")
     print(f"  • visualizaciones/modelo_estratificacion.pdf")
     print(f"  • visualizaciones/desplazamientos_carga.pdf")
@@ -1329,14 +1376,15 @@ def main():
     print(f"\n  Imágenes PNG de alta resolución (300 DPI):")
     print(f"  • {len(imagenes_generadas)} archivos en visualizaciones/")
     print("\nContenido del reporte:")
-    print("  • Página 1: Portada profesional con información del modelo")
-    print("  • Página 2: Estratificación del modelo")
-    print("  • Página 3: Asentamientos por carga (zapata: bordes negros)")
-    print("  • Página 4: Tensiones verticales σv por gravedad")
-    print("  • Página 5: Bulbo de presiones σv (zapata: bordes rojos)")
-    print("  • Página 6: Perfiles verticales de asentamiento")
-    print("  • Página 7: Perfiles verticales de tensiones incrementales Δσv")
-    print("  • Página 8: Curva carga-asentamiento incremental (10 pasos)")
+    print("  • Página 1: Portada del proyecto")
+    print("  • Página 2: Datos técnicos (geometría, mallado, cargas)")
+    print("  • Página 3: Estratificación del modelo")
+    print("  • Página 4: Asentamientos por carga (zapata: bordes negros)")
+    print("  • Página 5: Tensiones verticales σv por gravedad")
+    print("  • Página 6: Bulbo de presiones σv (zapata: bordes rojos)")
+    print("  • Página 7: Perfiles verticales de asentamiento")
+    print("  • Página 8: Perfiles verticales de tensiones incrementales Δσv")
+    print("  • Página 9: Curva carga-asentamiento incremental (10 pasos)")
     print("\nCaracterísticas:")
     print("  • Zapata en asentamientos: solo bordes negros (sin elementos de malla)")
     print("  • Zapata en bulbo: solo bordes rojos (sin volumen)")
