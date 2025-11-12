@@ -852,6 +852,32 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
             markeredgewidth=2,
             alpha=0.9)
 
+    # Agregar etiqueta profesional en el último punto
+    if len(cargas) > 0:
+        ultimo_asentamiento = asentamientos[-1]
+        ultima_carga = cargas[-1]
+
+        # Etiqueta en el último punto (ubicación inteligente para no tapar)
+        ax.annotate(
+            f'Final:\nP = {ultima_carga:.1f} kN\ns = {ultimo_asentamiento:.2f} mm',
+            xy=(ultimo_asentamiento, ultima_carga),
+            xytext=(15, -40),  # Offset hacia abajo-derecha
+            textcoords='offset points',
+            fontsize=13,
+            fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.6',
+                     facecolor='lightyellow',
+                     alpha=0.9,
+                     edgecolor='black',
+                     linewidth=2),
+            arrowprops=dict(arrowstyle='->',
+                          connectionstyle='arc3,rad=10',
+                          color='black',
+                          lw=2),
+            ha='left',
+            va='top'
+        )
+
     # Calcular y mostrar rigidez (stiffness) como pendiente promedio
     if len(cargas) > 1 and asentamientos[-1] - asentamientos[0] > 0:
         delta_carga = cargas[-1] - cargas[0]
@@ -1131,7 +1157,11 @@ def main():
         {'x': 0.0, 'y': L_cuarto, 'label': f'Esquina (0, {L_cuarto:.1f})'}
     ]
 
-    # Extraer perfiles de asentamientos
+    # Calcular profundidad de inicio (desde -Df hacia abajo)
+    Df = config.ZAPATA['Df']
+    profundidad_total = sum(e['espesor'] for e in config.ESTRATOS_SUELO)
+
+    # Extraer perfiles de asentamientos (desde -Df hacia abajo)
     perfiles_settlement = []
     for ubi in ubicaciones:
         perfil = extraer_perfil_vertical(
@@ -1139,8 +1169,8 @@ def main():
             ubi['x'],
             ubi['y'],
             campo_point='Settlement_carga_mm',
-            z_min=-30,
-            z_max=0,
+            z_min=-profundidad_total,
+            z_max=-Df,
             n_levels=60
         )
         perfil['label'] = ubi['label']
@@ -1166,7 +1196,7 @@ def main():
     # 6. PERFILES VERTICALES - Tensiones Incrementales
     print("\n6. Generando perfiles verticales de tensiones incrementales...")
 
-    # Extraer perfiles de tensiones
+    # Extraer perfiles de tensiones (desde -Df hacia abajo)
     perfiles_stress = []
     for ubi in ubicaciones:
         perfil = extraer_perfil_vertical(
@@ -1174,8 +1204,8 @@ def main():
             ubi['x'],
             ubi['y'],
             campo_cell='Sigma_v_carga_kPa',
-            z_min=-30,
-            z_max=0,
+            z_min=-profundidad_total,
+            z_max=-Df,
             n_levels=60
         )
         perfil['label'] = ubi['label']
