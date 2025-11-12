@@ -3,38 +3,38 @@
 Archivo de configuración para la generación de mallas de zapatas.
 """
 
-# Parámetros de la zapata
+# Parámetros de la zapata - CHANCADO PRIMARIO
 ZAPATA = {
-    'B': 2.0,      # Ancho (m)
-    'L': 3.0,      # Largo (m)
-    'h': 0.4,      # Altura/espesor (m)
-    'Df': 0.5,     # Profundidad de desplante (m)
+    'B': 1.8,      # Ancho (m)
+    'L': 2.0,      # Largo (m)
+    'h': 0.5,      # Altura/espesor (m)
+    'Df': 1.5,     # Profundidad de desplante (m)
 }
 
-# Estratos de suelo (de arriba hacia abajo)
+# Estratos de suelo - CHANCADO PRIMARIO (de arriba hacia abajo)
 ESTRATOS_SUELO = [
     {
-        'nombre': 'Suelo Superior',
-        'espesor': 5.0,   # metros
-        'E': 5e6,         # Módulo de Young (Pa) - 5 MPa (suelo muy blando)
-        'nu': 0.3,        # Coeficiente de Poisson
-        'rho': 2000,      # Densidad (kg/m³)
+        'nombre': 'Estrato 1',
+        'espesor': 5.1,   # metros
+        'E': 5e6,         # Módulo de Young (Pa) - 5 MPa
+        'nu': 0.35,       # Coeficiente de Poisson
+        'rho': 1835,      # Densidad (kg/m³) - convertido de 18 kN/m³
         'color': [0.9, 0.85, 0.7],  # Color claro (RGB)
     },
     {
-        'nombre': 'Suelo Intermedio',
-        'espesor': 9.0,
-        'E': 15e6,        # 15 MPa (suelo blando)
-        'nu': 0.3,
-        'rho': 2100,
+        'nombre': 'Estrato 2',
+        'espesor': 12.4,
+        'E': 12e6,        # 12 MPa
+        'nu': 0.30,       # Coeficiente de Poisson
+        'rho': 1937,      # Densidad (kg/m³) - convertido de 19 kN/m³
         'color': [0.7, 0.6, 0.4],   # Color medio
     },
     {
-        'nombre': 'Suelo Profundo',
-        'espesor': 6.0,
-        'E': 100e6,       # 100 MPa (suelo denso)
-        'nu': 0.3,
-        'rho': 2200,
+        'nombre': 'Estrato 3',
+        'espesor': 17.8,
+        'E': 50e6,        # 50 MPa
+        'nu': 0.20,       # Coeficiente de Poisson
+        'rho': 2039,      # Densidad (kg/m³) - convertido de 20 kN/m³
         'color': [0.5, 0.4, 0.3],   # Color oscuro
     },
 ]
@@ -57,9 +57,9 @@ DOMINIO = {
     'profundidad': sum(e['espesor'] for e in ESTRATOS_SUELO),  # Profundidad total (suma de estratos)
 }
 
-# Cargas aplicadas
+# Cargas aplicadas - CHANCADO PRIMARIO
 CARGAS = {
-    'P_column': 1000.0,  # Carga de columna en kN (se divide automáticamente para modelo 1/4)
+    'P_column': 414.0,  # Carga de columna en kN (se divide automáticamente para modelo 1/4)
 }
 
 # Configuración del análisis
