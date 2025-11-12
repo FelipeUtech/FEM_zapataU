@@ -772,6 +772,16 @@ def crear_grafica_perfiles_cientifica(perfiles, campo_tipo, output_file, titulo,
                markevery=3,  # Mostrar marcador cada 3 puntos para claridad
                alpha=0.9)
 
+    # Agregar línea horizontal en Df (profundidad de desplante)
+    import config
+    Df = config.ZAPATA['Df']
+    ax.axhline(y=-Df, color='black', linestyle='--', linewidth=2, alpha=0.7)
+    ax.text(ax.get_xlim()[1] * 0.95, -Df, f'  Df = {Df:.1f} m',
+           verticalalignment='bottom', horizontalalignment='right',
+           fontsize=12, fontweight='bold',
+           bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                    edgecolor='black', alpha=0.8))
+
     # Configuración de ejes
     ax.set_xlabel(xlabel, fontsize=16, fontweight='bold')
     ax.set_ylabel(ylabel, fontsize=16, fontweight='bold')
@@ -819,7 +829,7 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
     """
     import csv
 
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
     # Leer datos del CSV
     cargas = []
@@ -870,10 +880,6 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
                      alpha=0.9,
                      edgecolor='black',
                      linewidth=2),
-            arrowprops=dict(arrowstyle='->',
-                          connectionstyle='arc3,rad=10',
-                          color='black',
-                          lw=2),
             ha='left',
             va='top'
         )
@@ -964,14 +970,18 @@ def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
         ax.axis('off')
 
         # Encabezado principal
-        fig.text(0.5, 0.85, 'ANÁLISIS DE ELEMENTOS FINITOS',
+        fig.text(0.5, 0.88, 'ANÁLISIS DE ELEMENTOS FINITOS',
                 ha='center', fontsize=32, fontweight='bold', color='#1f4788')
 
-        fig.text(0.5, 0.78, 'Zapata de Concreto sobre Estratos de Suelo',
-                ha='center', fontsize=20, fontweight='normal', color='#2c5aa0')
+        # Nombre de la estructura
+        fig.text(0.5, 0.81, configuracion.get('nombre_estructura', ''),
+                ha='center', fontsize=24, fontweight='bold', color='#d62728')
+
+        fig.text(0.5, 0.75, 'Zapata de Concreto sobre Estratos de Suelo',
+                ha='center', fontsize=18, fontweight='normal', color='#2c5aa0')
 
         # Línea decorativa
-        fig.text(0.5, 0.73, '━' * 60,
+        fig.text(0.5, 0.70, '━' * 60,
                 ha='center', fontsize=12, color='#1f4788')
 
         # Información del proyecto en secciones
@@ -990,19 +1000,19 @@ Modelo: 1/4 con condiciones de simetría
 Elemento: Tetraédrico lineal (FourNodeTetrahedron)"""
 
         # Colocar información en bloques
-        fig.text(0.5, 0.60, info_zapata,
+        fig.text(0.5, 0.57, info_zapata,
                 ha='center', va='top',
                 fontsize=13, fontfamily='monospace',
                 bbox=dict(boxstyle='round,pad=0.8', facecolor='#e8f4f8',
                          edgecolor='#1f4788', linewidth=1.5))
 
-        fig.text(0.5, 0.42, info_suelo,
+        fig.text(0.5, 0.39, info_suelo,
                 ha='center', va='top',
                 fontsize=13, fontfamily='monospace',
                 bbox=dict(boxstyle='round,pad=0.8', facecolor='#f0f8e8',
                          edgecolor='#2c5aa0', linewidth=1.5))
 
-        fig.text(0.5, 0.22, info_analisis,
+        fig.text(0.5, 0.19, info_analisis,
                 ha='center', va='top',
                 fontsize=13, fontfamily='monospace',
                 bbox=dict(boxstyle='round,pad=0.8', facecolor='#fff8e8',
@@ -1247,6 +1257,7 @@ def main():
 
     # Preparar configuración para PDF
     configuracion = {
+        'nombre_estructura': config.NOMBRE_ESTRUCTURA,
         'B': config.ZAPATA['B'],
         'L': config.ZAPATA['L'],
         'h': config.ZAPATA['h'],

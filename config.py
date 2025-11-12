@@ -3,6 +3,9 @@
 Archivo de configuración para la generación de mallas de zapatas.
 """
 
+# Nombre de la estructura
+NOMBRE_ESTRUCTURA = "CHANCADO PRIMARIO"
+
 # Parámetros de la zapata - CHANCADO PRIMARIO
 ZAPATA = {
     'B': 1.8,      # Ancho (m)
