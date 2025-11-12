@@ -35,6 +35,85 @@ import config
 import utils
 
 # ===================================================================================
+# FUNCIONES AUXILIARES
+# ===================================================================================
+
+def extraer_tensiones_elementos(total_elements):
+    """
+    Extrae tensiones de todos los elementos tetraédricos.
+
+    Para material ElasticIsotropic con FourNodeTetrahedron, eleResponse('stress')
+    devuelve el tensor de tensiones con 6 componentes:
+    [σxx, σyy, σzz, τxy, τyz, τzx]
+
+    Args:
+        total_elements: Número total de elementos en el modelo
+
+    Returns:
+        dict con arrays numpy:
+            - 'sigma_xx': Tensión normal en dirección X (kPa)
+            - 'sigma_yy': Tensión normal en dirección Y (kPa)
+            - 'sigma_zz': Tensión normal en dirección Z (vertical) (kPa)
+            - 'tau_xy': Tensión cortante XY (kPa)
+            - 'tau_yz': Tensión cortante YZ (kPa)
+            - 'tau_zx': Tensión cortante ZX (kPa)
+    """
+    sigma_xx = np.zeros(total_elements)
+    sigma_yy = np.zeros(total_elements)
+    sigma_zz = np.zeros(total_elements)
+    tau_xy = np.zeros(total_elements)
+    tau_yz = np.zeros(total_elements)
+    tau_zx = np.zeros(total_elements)
+
+    for ele_id in range(1, total_elements + 1):
+        try:
+            # Intentar diferentes métodos para obtener tensiones
+            stress = None
+
+            # Método 1: eleResponse con 'stress'
+            try:
+                stress = ops.eleResponse(ele_id, 'stress')
+            except:
+                pass
+
+            # Método 2: eleResponse con 'stresses'
+            if stress is None or len(stress) == 0:
+                try:
+                    stress = ops.eleResponse(ele_id, 'stresses')
+                except:
+                    pass
+
+            # Método 3: eleResponse con 'material', 'stress'
+            if stress is None or len(stress) == 0:
+                try:
+                    stress = ops.eleResponse(ele_id, 'material', 'stress')
+                except:
+                    pass
+
+            if stress and len(stress) >= 6:
+                # Convertir de Pa a kPa (OpenSees usa Pa internamente)
+                sigma_xx[ele_id - 1] = stress[0] / 1000.0
+                sigma_yy[ele_id - 1] = stress[1] / 1000.0
+                sigma_zz[ele_id - 1] = stress[2] / 1000.0
+                tau_xy[ele_id - 1] = stress[3] / 1000.0
+                tau_yz[ele_id - 1] = stress[4] / 1000.0
+                tau_zx[ele_id - 1] = stress[5] / 1000.0
+        except Exception as e:
+            # Debugging: Imprimir el primer error
+            if ele_id == 1:
+                print(f"  Advertencia: No se pudieron extraer tensiones del elemento 1: {e}")
+            pass
+
+    return {
+        'sigma_xx': sigma_xx,
+        'sigma_yy': sigma_yy,
+        'sigma_zz': sigma_zz,
+        'tau_xy': tau_xy,
+        'tau_yz': tau_yz,
+        'tau_zx': tau_zx
+    }
+
+# ===================================================================================
 # FUNCIÓN PRINCIPAL
 # ===================================================================================
 
@@ -502,6 +581,13 @@ def main():
     df_fase1.to_csv(csv_fase1, index=False)
     print(f"✓ Resultados Fase 1 guardados: {csv_fase1}")
 
+    # Extraer tensiones Fase 1
+    print("\nExtrayendo tensiones FASE 1 - Gravedad...")
+    tensiones_fase1 = extraer_tensiones_elementos(total_elements)
+    print(f"✓ Tensiones extraídas para {total_elements} elementos")
+    print(f"  σv (vertical) - Rango: [{tensiones_fase1['sigma_zz'].min():.2f}, {tensiones_fase1['sigma_zz'].max():.2f}] kPa")
+    print(f"  σv (vertical) - Media: {tensiones_fase1['sigma_zz'].mean():.2f} kPa")
+
     # -------------------------
     # 5b. FASE 2 - CARGA INCREMENTAL
     # -------------------------
@@ -710,6 +796,27 @@ def main():
     df_fase2.to_csv(csv_fase2, index=False)
     print(f"✓ Resultados Fase 2 guardados: {csv_fase2}")
 
+    # Extraer tensiones TOTALES Fase 2 (gravedad + carga)
+    print("\nExtrayendo tensiones FASE 2 - Carga incremental (total)...")
+    tensiones_total = extraer_tensiones_elementos(total_elements)
+    print(f"✓ Tensiones totales extraídas para {total_elements} elementos")
+    print(f"  σv (vertical) total - Rango: [{tensiones_total['sigma_zz'].min():.2f}, {tensiones_total['sigma_zz'].max():.2f}] kPa")
+    print(f"  σv (vertical) total - Media: {tensiones_total['sigma_zz'].mean():.2f} kPa")
+
+    # Calcular tensiones solo por carga (diferencial: Fase 2 - Fase 1)
+    print("\nCalculando tensiones incrementales por carga...")
+    tensiones_fase2 = {
+        'sigma_xx': tensiones_total['sigma_xx'] - tensiones_fase1['sigma_xx'],
+        'sigma_yy': tensiones_total['sigma_yy'] - tensiones_fase1['sigma_yy'],
+        'sigma_zz': tensiones_total['sigma_zz'] - tensiones_fase1['sigma_zz'],
+        'tau_xy': tensiones_total['tau_xy'] - tensiones_fase1['tau_xy'],
+        'tau_yz': tensiones_total['tau_yz'] - tensiones_fase1['tau_yz'],
+        'tau_zx': tensiones_total['tau_zx'] - tensiones_fase1['tau_zx']
+    }
+    print(f"✓ Tensiones incrementales calculadas")
+    print(f"  Δσv (vertical) - Rango: [{tensiones_fase2['sigma_zz'].min():.2f}, {tensiones_fase2['sigma_zz'].max():.2f}] kPa")
+    print(f"  Δσv (vertical) - Media: {tensiones_fase2['sigma_zz'].mean():.2f} kPa")
+
     # -------------------------
     # 7c. COMBINAR RESULTADOS
     # -------------------------
@@ -833,6 +940,21 @@ def main():
         result_grid = pv.UnstructuredGrid(new_cells, celltypes, unique_points)
         result_grid.cell_data['dominio'] = np.array(new_material_ids)
 
+        # Agregar tensiones FASE 1 (Gravedad) como cell_data
+        result_grid.cell_data['Sigma_v_gravedad_kPa'] = tensiones_fase1['sigma_zz']
+        result_grid.cell_data['Sigma_xx_gravedad_kPa'] = tensiones_fase1['sigma_xx']
+        result_grid.cell_data['Sigma_yy_gravedad_kPa'] = tensiones_fase1['sigma_yy']
+
+        # Agregar tensiones FASE 2 (Incrementales por carga) como cell_data
+        result_grid.cell_data['Sigma_v_carga_kPa'] = tensiones_fase2['sigma_zz']
+        result_grid.cell_data['Sigma_xx_carga_kPa'] = tensiones_fase2['sigma_xx']
+        result_grid.cell_data['Sigma_yy_carga_kPa'] = tensiones_fase2['sigma_yy']
+
+        # Agregar tensiones TOTALES (Gravedad + Carga) como cell_data
+        result_grid.cell_data['Sigma_v_total_kPa'] = tensiones_total['sigma_zz']
+        result_grid.cell_data['Sigma_xx_total_kPa'] = tensiones_total['sigma_xx']
+        result_grid.cell_data['Sigma_yy_total_kPa'] = tensiones_total['sigma_yy']
+
         # Extraer desplazamientos TOTALES de todos los nodos desde OpenSees
         displacements = np.zeros((len(node_coords), 3))
         settlement_grav_array = np.zeros(len(node_coords))
@@ -867,6 +989,10 @@ def main():
         result_grid.save(vtu_file)
         print(f"✓ Archivo VTU generado: {vtu_file}")
         print(f"  Nodos: {len(unique_points)}, Elementos: {len(new_material_ids)}")
+        print(f"  Campos disponibles:")
+        print(f"    • Desplazamientos (point_data): gravedad, carga, total")
+        print(f"    • Tensiones σv (cell_data): gravedad, carga, total")
+        print(f"    • Tensiones σxx, σyy (cell_data): gravedad, carga, total")
         print(f"  Para visualizar: paraview {vtu_file}")
     except Exception as e:
         print(f"⚠️  Error al generar VTU: {e}")
@@ -967,7 +1093,9 @@ def main():
     if salida['guardar_csv']:
         print(f"  • {salida['csv_surface']} (superficie)")
     print(f"\n  Visualización:")
-    print(f"  • resultados_2phases.vtu (ParaView - con campos por fase)")
+    print(f"  • resultados_2phases.vtu (ParaView)")
+    print(f"    - Desplazamientos (point_data): gravedad, carga, total")
+    print(f"    - Tensiones σv, σxx, σyy (cell_data): gravedad, carga, total")
     if salida['generar_reporte']:
         print(f"\n  Reportes:")
         print(f"  • analysis_summary_2phases.txt")
