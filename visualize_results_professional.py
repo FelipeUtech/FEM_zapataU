@@ -319,6 +319,105 @@ def crear_vista_desplazamientos(mesh, campo, output_file,
     print(f"✓ Vista de desplazamientos guardada: {output_file}")
 
 
+def crear_vista_tensiones(mesh, campo, output_file, titulo="Tensiones Verticales",
+                          unidades="kPa", cmap='RdBu_r'):
+    """
+    Crea una vista isométrica de tensiones (cell_data).
+
+    Args:
+        mesh: PyVista mesh con los datos
+        campo: Nombre del campo de tensiones en cell_data
+        output_file: Archivo de salida PNG
+        titulo: Título de la visualización
+        unidades: Unidades del campo
+        cmap: Colormap (RdBu_r para tensiones: rojo=compresión, azul=tracción)
+    """
+    plotter = pv.Plotter(off_screen=True, window_size=[2400, 1800])
+    plotter.set_background('white')
+
+    # Iluminación profesional
+    plotter.add_light(pv.Light(position=(10, 10, 10), intensity=0.8))
+    plotter.add_light(pv.Light(position=(-10, -5, 5), intensity=0.3))
+    plotter.add_light(pv.Light(intensity=0.3, light_type='headlight'))
+
+    # Obtener rango de datos
+    data = mesh.cell_data[campo]
+    vmin, vmax = data.min(), data.max()
+
+    # Agregar malla con escala de colores
+    plotter.add_mesh(
+        mesh,
+        scalars=campo,
+        cmap=cmap,
+        show_edges=True,
+        edge_color='black',
+        line_width=0.5,
+        opacity=1.0,
+        smooth_shading=False,
+        specular=0.15,
+        clim=[vmin, vmax],
+        scalar_bar_args={
+            'title': f'Tensión ({unidades})',
+            'title_font_size': 22,
+            'label_font_size': 18,
+            'n_labels': 8,
+            'italic': False,
+            'fmt': '%.1f',
+            'font_family': 'arial',
+            'vertical': True,
+            'height': 0.65,
+            'width': 0.10,
+            'position_x': 0.86,
+            'position_y': 0.17,
+            'color': 'black'
+        }
+    )
+
+    # Configurar cámara
+    configurar_camara_isometrica(plotter, mesh)
+
+    # Ejes
+    try:
+        plotter.add_axes(
+            xlabel='X',
+            ylabel='Y',
+            zlabel='Z',
+            line_width=3,
+            color='black',
+            x_color='red',
+            y_color='green',
+            z_color='blue'
+        )
+    except Exception as e:
+        print(f"  Advertencia: No se pudieron agregar ejes: {e}")
+
+    # Título
+    plotter.add_text(
+        titulo,
+        position='upper_edge',
+        font_size=24,
+        color='black',
+        font='arial'
+    )
+
+    # Estadísticas
+    info_text = f"Máx: {vmax:.1f} {unidades} | Mín: {vmin:.1f} {unidades} | Media: {data.mean():.1f} {unidades}"
+    plotter.add_text(
+        info_text,
+        position=(0.45, 0.02),
+        font_size=16,
+        color='black',
+        font='arial',
+        viewport=True
+    )
+
+    # Renderizar
+    plotter.screenshot(output_file, scale=3)
+    plotter.close()
+
+    print(f"✓ Vista de tensiones guardada: {output_file}")
+
+
 def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
     """
     Crea un PDF multipágina profesional con las imágenes generadas.
@@ -476,6 +575,60 @@ def main():
         print("⚠️  Campo 'Settlement_carga_mm' no encontrado en los datos")
         return
 
+    # 3. Tensiones verticales por gravedad (Fase 1)
+    if 'Sigma_v_gravedad_kPa' in mesh.cell_data:
+        print("\n3. Generando vista de tensiones verticales por gravedad...")
+        img_sigma_grav = 'visualizaciones/tensiones_gravedad.png'
+        crear_vista_tensiones(
+            mesh,
+            'Sigma_v_gravedad_kPa',
+            img_sigma_grav,
+            titulo="Tensiones Verticales σv - Fase 1: Gravedad",
+            unidades="kPa",
+            cmap='RdBu_r'  # Rojo (compresión) -> Azul (tracción)
+        )
+        imagenes_generadas.append((
+            img_sigma_grav,
+            "Fase 1: Tensiones Verticales por Gravedad",
+            "Campo de tensiones verticales σv generado por peso propio del suelo y zapata"
+        ))
+
+    # 4. Tensiones verticales incrementales por carga (Fase 2)
+    if 'Sigma_v_carga_kPa' in mesh.cell_data:
+        print("\n4. Generando vista de tensiones verticales por carga...")
+        img_sigma_carga = 'visualizaciones/tensiones_carga.png'
+        crear_vista_tensiones(
+            mesh,
+            'Sigma_v_carga_kPa',
+            img_sigma_carga,
+            titulo="Tensiones Verticales σv - Fase 2: Carga Incremental",
+            unidades="kPa",
+            cmap='RdBu_r'
+        )
+        imagenes_generadas.append((
+            img_sigma_carga,
+            "Fase 2: Tensiones Incrementales por Carga",
+            "Incremento de tensiones verticales σv debido a la carga de columna (250 kN)"
+        ))
+
+    # 5. Tensiones verticales totales
+    if 'Sigma_v_total_kPa' in mesh.cell_data:
+        print("\n5. Generando vista de tensiones verticales totales...")
+        img_sigma_total = 'visualizaciones/tensiones_total.png'
+        crear_vista_tensiones(
+            mesh,
+            'Sigma_v_total_kPa',
+            img_sigma_total,
+            titulo="Tensiones Verticales σv - Total (Gravedad + Carga)",
+            unidades="kPa",
+            cmap='RdBu_r'
+        )
+        imagenes_generadas.append((
+            img_sigma_total,
+            "Tensiones Verticales Totales",
+            "Campo total de tensiones verticales σv (suma de gravedad y carga incremental)"
+        ))
+
     # Preparar configuración para PDF
     configuracion = {
         'B': config.ZAPATA['B'],
@@ -515,17 +668,27 @@ def main():
     print("VISUALIZACIONES COMPLETADAS")
     print("="*80)
     print("\nArchivos generados:")
-    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con portada)")
-    print(f"  • visualizaciones/modelo_estratificacion.pdf (estratificación)")
-    print(f"  • visualizaciones/desplazamientos_carga.pdf (asentamientos)")
-    print(f"  • 2 imágenes PNG de alta resolución (3x escala)")
-    print("\nCaracterísticas:")
-    print("  • Portada profesional con información del modelo")
+    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con {len(imagenes_generadas)+1} páginas)")
+    print(f"\n  PDFs individuales:")
+    print(f"  • visualizaciones/modelo_estratificacion.pdf")
+    print(f"  • visualizaciones/desplazamientos_carga.pdf")
+    print(f"  • visualizaciones/tensiones_gravedad.pdf")
+    print(f"  • visualizaciones/tensiones_carga.pdf")
+    print(f"  • visualizaciones/tensiones_total.pdf")
+    print(f"\n  Imágenes PNG de alta resolución (3x escala):")
+    print(f"  • {len(imagenes_generadas)} archivos en visualizaciones/")
+    print("\nContenido del reporte:")
+    print("  • Página 1: Portada profesional con información del modelo")
     print("  • Página 2: Estratificación por materiales")
     print("  • Página 3: Asentamientos por carga (azul → rojo)")
+    print("  • Página 4: Tensiones verticales σv por gravedad")
+    print("  • Página 5: Tensiones incrementales σv por carga")
+    print("  • Página 6: Tensiones totales σv (gravedad + carga)")
+    print("\nCaracterísticas:")
     print("  • Textos aumentados: Títulos 24pt, Info 16pt")
     print("  • Leyenda: 22pt título, 18pt etiquetas")
     print("  • Aristas reales visibles (sin suavizado)")
+    print("  • Colormap tensiones: RdBu_r (rojo=compresión, azul=tracción)")
     print("\n" + "="*80)
 
 
