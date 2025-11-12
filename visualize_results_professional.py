@@ -969,22 +969,41 @@ def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
         ax = fig.add_subplot(111)
         ax.axis('off')
 
-        # Encabezado principal
-        fig.text(0.5, 0.88, 'ANÁLISIS DE ELEMENTOS FINITOS',
-                ha='center', fontsize=32, fontweight='bold', color='#1f4788')
+        # Encabezado del proyecto
+        fig.text(0.5, 0.92, 'Asesoría Integral Obras Superficiales Proyecto Porvenir',
+                ha='center', fontsize=18, fontweight='bold', color='#1f4788')
 
-        # Nombre de la estructura
-        fig.text(0.5, 0.81, configuracion.get('nombre_estructura', ''),
-                ha='center', fontsize=24, fontweight='bold', color='#d62728')
+        # Información del cliente y proyecto
+        fig.text(0.5, 0.86, 'Cliente: HEMCO Mineros Nicaragua',
+                ha='center', fontsize=14, fontweight='normal', color='#2c5aa0')
 
-        fig.text(0.5, 0.75, 'Zapata de Concreto sobre Estratos de Suelo',
-                ha='center', fontsize=18, fontweight='normal', color='#2c5aa0')
+        fig.text(0.5, 0.82, 'Localización: Bonanza, Nicaragua',
+                ha='center', fontsize=14, fontweight='normal', color='#2c5aa0')
 
         # Línea decorativa
-        fig.text(0.5, 0.70, '━' * 60,
+        fig.text(0.5, 0.78, '━' * 60,
                 ha='center', fontsize=12, color='#1f4788')
 
-        # Información del proyecto en secciones
+        # Asunto
+        fig.text(0.5, 0.73, 'Asunto: Capacidad de Carga Estructuras de Planta de Procesos',
+                ha='center', fontsize=15, fontweight='bold', color='#1f4788')
+
+        # Título del análisis
+        fig.text(0.5, 0.67, 'ANÁLISIS DE ELEMENTOS FINITOS',
+                ha='center', fontsize=24, fontweight='bold', color='#1f4788')
+
+        # Nombre de la estructura
+        fig.text(0.5, 0.62, configuracion.get('nombre_estructura', ''),
+                ha='center', fontsize=20, fontweight='bold', color='#d62728')
+
+        fig.text(0.5, 0.58, 'Zapata de Concreto sobre Estratos de Suelo',
+                ha='center', fontsize=14, fontweight='normal', color='#555555')
+
+        # Línea decorativa
+        fig.text(0.5, 0.54, '━' * 60,
+                ha='center', fontsize=12, color='#1f4788')
+
+        # Información técnica en bloques
         info_zapata = f"""GEOMETRÍA DE LA ZAPATA
 Dimensiones: {configuracion['B']}m × {configuracion['L']}m × {configuracion['h']}m
 Profundidad de desplante: {configuracion['Df']}m
@@ -1000,26 +1019,29 @@ Modelo: 1/4 con condiciones de simetría
 Elemento: Tetraédrico lineal (FourNodeTetrahedron)"""
 
         # Colocar información en bloques
-        fig.text(0.5, 0.57, info_zapata,
+        fig.text(0.5, 0.45, info_zapata,
                 ha='center', va='top',
-                fontsize=13, fontfamily='monospace',
-                bbox=dict(boxstyle='round,pad=0.8', facecolor='#e8f4f8',
+                fontsize=12, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.7', facecolor='#e8f4f8',
                          edgecolor='#1f4788', linewidth=1.5))
 
-        fig.text(0.5, 0.39, info_suelo,
+        fig.text(0.5, 0.30, info_suelo,
                 ha='center', va='top',
-                fontsize=13, fontfamily='monospace',
-                bbox=dict(boxstyle='round,pad=0.8', facecolor='#f0f8e8',
+                fontsize=12, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.7', facecolor='#f0f8e8',
                          edgecolor='#2c5aa0', linewidth=1.5))
 
-        fig.text(0.5, 0.19, info_analisis,
+        fig.text(0.5, 0.14, info_analisis,
                 ha='center', va='top',
-                fontsize=13, fontfamily='monospace',
-                bbox=dict(boxstyle='round,pad=0.8', facecolor='#fff8e8',
+                fontsize=12, fontfamily='monospace',
+                bbox=dict(boxstyle='round,pad=0.7', facecolor='#fff8e8',
                          edgecolor='#1f4788', linewidth=1.5))
 
-        # Pie de página
-        fig.text(0.5, 0.05, f'Fecha: {datetime.now().strftime("%d de %B de %Y")}',
+        # Pie de página con calculista y fecha
+        fig.text(0.5, 0.04, 'Calculó: Suelos & Rocas Ingeniería SAS',
+                ha='center', fontsize=12, fontweight='bold', color='#1f4788')
+
+        fig.text(0.5, 0.01, 'Fecha: Noviembre 2025',
                 ha='center', fontsize=11, style='italic', color='#555555')
 
         pdf.savefig(fig, bbox_inches='tight', dpi=300)
