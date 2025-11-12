@@ -34,7 +34,7 @@ ESTRATOS_SUELO = [
     },
     {
         'nombre': 'Estrato 3',
-        'espesor': 6.5,   # metros (profundidad: 8.7 a 15.2 m)
+        'espesor': 11.3,  # metros (profundidad: 8.7 a 20.0 m)
         'E': 50e6,        # 50 MPa
         'nu': 0.20,       # Coeficiente de Poisson
         'rho': 2039,      # Densidad (kg/m³) - convertido de 20 kN/m³

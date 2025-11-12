@@ -1220,6 +1220,11 @@ def main():
     if 'Sigma_v_carga_kPa' in mesh.cell_data:
         print("\n4. Generando vista del bulbo de presiones (sin zapata)...")
         img_bulbo = 'visualizaciones/bulbo_presiones.png'
+        # Calcular presión transmitida: P/A
+        P = config.CARGAS['P_column']
+        A = config.ZAPATA['B'] * config.ZAPATA['L']
+        presion_transmitida = P / A
+
         crear_vista_bulbo_sin_zapata(
             mesh,
             'Sigma_v_carga_kPa',
@@ -1227,7 +1232,7 @@ def main():
             titulo="Bulbo de Presiones σv - Solo Suelo (Bordes de Zapata en Rojo)",
             unidades="kPa",
             cmap='RdBu_r',
-            clim=[-300, 0]
+            clim=[-presion_transmitida, 100]
         )
         imagenes_generadas.append((
             img_bulbo,
@@ -1400,10 +1405,15 @@ def main():
     print("  • Página 7: Perfiles verticales de asentamiento")
     print("  • Página 8: Perfiles verticales de tensiones incrementales Δσv")
     print("  • Página 9: Curva carga-asentamiento incremental (10 pasos)")
+    # Calcular presión transmitida para el mensaje
+    P_msg = config.CARGAS['P_column']
+    A_msg = config.ZAPATA['B'] * config.ZAPATA['L']
+    presion_msg = P_msg / A_msg
+
     print("\nCaracterísticas:")
     print("  • Zapata en asentamientos: solo bordes negros (sin elementos de malla)")
     print("  • Zapata en bulbo: solo bordes rojos (sin volumen)")
-    print("  • Escala bulbo ajustada: [-300, 0] kPa para resaltar distribución")
+    print(f"  • Escala bulbo ajustada: [-{presion_msg:.0f}, 100] kPa (desde presión transmitida)")
     print("  • Perfiles científicos: 4 ubicaciones (centro + 3 esquinas)")
     print("  • Curva carga-asentamiento: 10 pasos incrementales sin gravedad")
     print("  • Rigidez promedio k (kN/mm) calculada desde datos incrementales")

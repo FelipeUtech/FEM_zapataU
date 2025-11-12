@@ -4,22 +4,22 @@ REPORTE DE ANÁLISIS DE ZAPATA - 2 FASES
 
 MODELO:
   Zapata: 6.0m × 8.0m × 1.0m
-  Dominio: 15.0m × 20.0m × 15.2m
+  Dominio: 15.0m × 20.0m × 20.0m
   Modelo: Cuarto con simetría
   Malla: GMSH Tetraédrica
-  Elementos: 6420 elementos tetraédricos
-  Nodos: 1596
-  Estratos suelo: Estrato 1 (E=5000 MPa, h=6.45m), Estrato 2 (E=12000 MPa, h=2.25m), Estrato 3 (E=50000 MPa, h=6.5m)
+  Elementos: 7421 elementos tetraédricos
+  Nodos: 1816
+  Estratos suelo: Estrato 1 (E=5000 MPa, h=6.45m), Estrato 2 (E=12000 MPa, h=2.25m), Estrato 3 (E=50000 MPa, h=11.3m)
   Material zapata: E=25000000 MPa (concreto rígido)
-  Peso total modelo: 86406480.00 kN
+  Peso total modelo: 115210209.60 kN
 
 ================================================================================
 FASE 1 - GRAVEDAD
 ================================================================================
   Tipo: Campo de tensiones por peso propio
-  Asentamiento máximo: 131.8313 mm
+  Asentamiento máximo: 165.4333 mm
   Asentamiento mínimo: -0.0000 mm
-  Asentamiento promedio: 60.6491 mm
+  Asentamiento promedio: 82.2360 mm
 
 ================================================================================
 FASE 2 - CARGA INCREMENTAL
@@ -27,19 +27,19 @@ FASE 2 - CARGA INCREMENTAL
   Tipo: Carga de columna
   Carga aplicada: 1572.00 kN
   Presión contacto: 154.54 kPa
-  Asentamiento máximo: 47.4199 mm
-  Asentamiento mínimo: -1.1290 mm
-  Asentamiento promedio: 11.7793 mm
+  Asentamiento máximo: 48.6490 mm
+  Asentamiento mínimo: -0.7041 mm
+  Asentamiento promedio: 11.0894 mm
 
 ================================================================================
 RESULTADOS TOTALES (FASE 1 + FASE 2)
 ================================================================================
-  Asentamiento máximo: 131.7439 mm
-  Asentamiento mínimo: 107.6506 mm
-  Asentamiento promedio: 118.1642 mm
-  Desviación estándar: 6.1951 mm
-  Diferencial: 24.0934 mm
-  Relación diferencial: 0.1829
+  Asentamiento máximo: 165.4125 mm
+  Asentamiento mínimo: 142.1433 mm
+  Asentamiento promedio: 152.1510 mm
+  Desviación estándar: 5.9916 mm
+  Diferencial: 23.2692 mm
+  Relación diferencial: 0.1407
 
 ================================================================================
 
