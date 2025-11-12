@@ -4,21 +4,21 @@ Archivo de configuración para la generación de mallas de zapatas.
 """
 
 # Nombre de la estructura
-NOMBRE_ESTRUCTURA = "CHANCADO PRIMARIO"
+NOMBRE_ESTRUCTURA = "EDIFICIO DE MOLIENDA"
 
-# Parámetros de la zapata - CHANCADO PRIMARIO
+# Parámetros de la zapata - EDIFICIO DE MOLIENDA
 ZAPATA = {
-    'B': 1.8,      # Ancho (m)
-    'L': 2.0,      # Largo (m)
-    'h': 0.5,      # Altura/espesor (m)
-    'Df': 1.5,     # Profundidad de desplante (m)
+    'B': 6.0,      # Ancho (m)
+    'L': 8.0,      # Largo (m)
+    'h': 1.0,      # Altura/espesor (m)
+    'Df': 2.5,     # Profundidad de desplante (m)
 }
 
-# Estratos de suelo - CHANCADO PRIMARIO (de arriba hacia abajo)
+# Estratos de suelo - EDIFICIO DE MOLIENDA (de arriba hacia abajo)
 ESTRATOS_SUELO = [
     {
         'nombre': 'Estrato 1',
-        'espesor': 5.1,   # metros
+        'espesor': 6.45,  # metros (profundidad: 0 a 6.45 m)
         'E': 5e6,         # Módulo de Young (Pa) - 5 MPa
         'nu': 0.35,       # Coeficiente de Poisson
         'rho': 1835,      # Densidad (kg/m³) - convertido de 18 kN/m³
@@ -26,7 +26,7 @@ ESTRATOS_SUELO = [
     },
     {
         'nombre': 'Estrato 2',
-        'espesor': 12.4,
+        'espesor': 2.25,  # metros (profundidad: 6.45 a 8.7 m)
         'E': 12e6,        # 12 MPa
         'nu': 0.30,       # Coeficiente de Poisson
         'rho': 1937,      # Densidad (kg/m³) - convertido de 19 kN/m³
@@ -34,7 +34,7 @@ ESTRATOS_SUELO = [
     },
     {
         'nombre': 'Estrato 3',
-        'espesor': 17.8,
+        'espesor': 6.5,   # metros (profundidad: 8.7 a 15.2 m)
         'E': 50e6,        # 50 MPa
         'nu': 0.20,       # Coeficiente de Poisson
         'rho': 2039,      # Densidad (kg/m³) - convertido de 20 kN/m³
@@ -60,9 +60,9 @@ DOMINIO = {
     'profundidad': sum(e['espesor'] for e in ESTRATOS_SUELO),  # Profundidad total (suma de estratos)
 }
 
-# Cargas aplicadas - CHANCADO PRIMARIO
+# Cargas aplicadas - EDIFICIO DE MOLIENDA
 CARGAS = {
-    'P_column': 414.0,  # Carga de columna en kN (se divide automáticamente para modelo 1/4)
+    'P_column': 6288.0,  # Carga de columna en kN (presión: 131 kPa, se divide automáticamente para modelo 1/4)
 }
 
 # Configuración del análisis
