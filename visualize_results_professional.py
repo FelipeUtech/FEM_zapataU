@@ -418,6 +418,114 @@ def crear_vista_tensiones(mesh, campo, output_file, titulo="Tensiones Verticales
     print(f"✓ Vista de tensiones guardada: {output_file}")
 
 
+def crear_vista_desplazamientos_con_bordes(mesh, campo, output_file, titulo="Desplazamientos",
+                                            unidades="mm", cmap='coolwarm'):
+    """
+    Crea vista de desplazamientos con zapata mostrada solo como bordes negros.
+
+    Args:
+        mesh: PyVista mesh con los datos
+        campo: Nombre del campo de desplazamientos en point_data
+        output_file: Archivo de salida PNG
+        titulo: Título de la visualización
+        unidades: Unidades del campo
+        cmap: Colormap
+    """
+    plotter = pv.Plotter(off_screen=True, window_size=[2400, 1800])
+    plotter.set_background('white')
+
+    # Iluminación profesional
+    plotter.add_light(pv.Light(position=(10, 10, 10), intensity=0.8))
+    plotter.add_light(pv.Light(position=(-10, -5, 5), intensity=0.3))
+    plotter.add_light(pv.Light(intensity=0.3, light_type='headlight'))
+
+    # Separar suelo y zapata
+    suelo_mesh = mesh.threshold([1, 3], scalars='dominio')
+    zapata_mesh = mesh.threshold([4, 4], scalars='dominio')
+
+    # Agregar suelo con desplazamientos
+    plotter.add_mesh(
+        suelo_mesh,
+        scalars=campo,
+        cmap=cmap,
+        show_edges=True,
+        edge_color='black',
+        line_width=0.5,
+        opacity=1.0,
+        smooth_shading=False,
+        specular=0.15,
+        scalar_bar_args={
+            'title': f'{unidades}',
+            'title_font_size': 22,
+            'label_font_size': 18,
+            'n_labels': 8,
+            'italic': False,
+            'fmt': '%.1f',
+            'font_family': 'arial',
+            'vertical': True,
+            'height': 0.65,
+            'width': 0.10,
+            'position_x': 0.86,
+            'position_y': 0.17,
+            'color': 'black'
+        }
+    )
+
+    # Agregar SOLO los bordes de la zapata en NEGRO
+    plotter.add_mesh(
+        zapata_mesh,
+        style='wireframe',
+        color='black',
+        line_width=2.5,
+        opacity=1.0
+    )
+
+    # Configurar cámara
+    configurar_camara_isometrica(plotter, mesh)
+
+    # Ejes
+    try:
+        plotter.add_axes(
+            xlabel='X',
+            ylabel='Y',
+            zlabel='Z',
+            line_width=3,
+            color='black',
+            x_color='red',
+            y_color='green',
+            z_color='blue'
+        )
+    except Exception as e:
+        print(f"  Advertencia: No se pudieron agregar ejes: {e}")
+
+    # Título
+    plotter.add_text(
+        titulo,
+        position='upper_edge',
+        font_size=24,
+        color='black',
+        font='arial'
+    )
+
+    # Estadísticas
+    data = mesh.point_data[campo]
+    info_text = f"Máx: {data.max():.2f} {unidades} | Mín: {data.min():.2f} {unidades} | Media: {data.mean():.2f} {unidades}"
+    plotter.add_text(
+        info_text,
+        position=(0.45, 0.02),
+        font_size=16,
+        color='black',
+        font='arial',
+        viewport=True
+    )
+
+    # Renderizar
+    plotter.screenshot(output_file, scale=3)
+    plotter.close()
+
+    print(f"✓ Vista de desplazamientos con bordes guardada: {output_file}")
+
+
 def crear_vista_bulbo_sin_zapata(mesh, campo, output_file, titulo="Bulbo de Presiones",
                                   unidades="kPa", cmap='RdBu_r', clim=None):
     """
@@ -681,23 +789,22 @@ def main():
         "Vista isométrica mostrando los estratos de suelo y zapata de concreto"
     ))
 
-    # 2. Desplazamientos fase 2 (carga)
-    # Mapa de calor: azul (mínimo) a rojo (máximo)
+    # 2. Asentamientos por carga (Fase 2) - CON BORDES NEGROS DE ZAPATA
     if 'Settlement_carga_mm' in mesh.point_data:
-        print("\n2. Generando vista de asentamientos por carga de columna...")
+        print("\n2. Generando vista de asentamientos por carga (zapata con bordes negros)...")
         img_carga = 'visualizaciones/desplazamientos_carga.png'
-        crear_vista_desplazamientos(
+        crear_vista_desplazamientos_con_bordes(
             mesh,
             'Settlement_carga_mm',
             img_carga,
             titulo="Asentamientos por Carga de Columna (Fase 2)",
             unidades="mm",
-            cmap='coolwarm'  # Azul (mínimo) -> Blanco (medio) -> Rojo (máximo)
+            cmap='coolwarm'
         )
         imagenes_generadas.append((
             img_carga,
             "Fase 2: Asentamientos por Carga de Columna",
-            "Desplazamientos adicionales inducidos por la carga de 250 kN (modelo 1/4)"
+            "Desplazamientos adicionales inducidos por la carga de 250 kN (zapata: bordes negros)"
         ))
     else:
         print("⚠️  Campo 'Settlement_carga_mm' no encontrado en los datos")
@@ -713,7 +820,7 @@ def main():
             img_sigma_grav,
             titulo="Tensiones Verticales σv - Fase 1: Gravedad",
             unidades="kPa",
-            cmap='RdBu_r'  # Rojo (compresión) -> Azul (tracción)
+            cmap='RdBu_r'
         )
         imagenes_generadas.append((
             img_sigma_grav,
@@ -721,26 +828,9 @@ def main():
             "Campo de tensiones verticales σv generado por peso propio del suelo y zapata"
         ))
 
-    # 4. Tensiones verticales incrementales por carga (Fase 2)
+    # 4. BULBO DE PRESIONES (sin zapata, solo bordes rojos)
     if 'Sigma_v_carga_kPa' in mesh.cell_data:
-        print("\n4. Generando vista de tensiones verticales por carga...")
-        img_sigma_carga = 'visualizaciones/tensiones_carga.png'
-        crear_vista_tensiones(
-            mesh,
-            'Sigma_v_carga_kPa',
-            img_sigma_carga,
-            titulo="Tensiones Verticales σv - Fase 2: Carga Incremental",
-            unidades="kPa",
-            cmap='RdBu_r'
-        )
-        imagenes_generadas.append((
-            img_sigma_carga,
-            "Fase 2: Tensiones Incrementales por Carga",
-            "Incremento de tensiones verticales σv debido a la carga de columna (250 kN)"
-        ))
-
-        # 4b. BULBO DE PRESIONES sin zapata (solo suelo + bordes rojos)
-        print("\n4b. Generando vista del bulbo de presiones (sin zapata)...")
+        print("\n4. Generando vista del bulbo de presiones (sin zapata)...")
         img_bulbo = 'visualizaciones/bulbo_presiones.png'
         crear_vista_bulbo_sin_zapata(
             mesh,
@@ -749,30 +839,12 @@ def main():
             titulo="Bulbo de Presiones σv - Solo Suelo (Bordes de Zapata en Rojo)",
             unidades="kPa",
             cmap='RdBu_r',
-            clim=[-300, 0]  # Rango ajustado para resaltar el bulbo
+            clim=[-300, 0]
         )
         imagenes_generadas.append((
             img_bulbo,
             "Bulbo de Presiones en el Suelo",
-            "Distribución de tensiones verticales σv en el suelo por carga de columna (zapata: solo bordes rojos)"
-        ))
-
-    # 5. Tensiones verticales totales
-    if 'Sigma_v_total_kPa' in mesh.cell_data:
-        print("\n5. Generando vista de tensiones verticales totales...")
-        img_sigma_total = 'visualizaciones/tensiones_total.png'
-        crear_vista_tensiones(
-            mesh,
-            'Sigma_v_total_kPa',
-            img_sigma_total,
-            titulo="Tensiones Verticales σv - Total (Gravedad + Carga)",
-            unidades="kPa",
-            cmap='RdBu_r'
-        )
-        imagenes_generadas.append((
-            img_sigma_total,
-            "Tensiones Verticales Totales",
-            "Campo total de tensiones verticales σv (suma de gravedad y carga incremental)"
+            "Distribución de tensiones verticales σv en el suelo por carga de columna (zapata: bordes rojos)"
         ))
 
     # Preparar configuración para PDF
@@ -814,27 +886,26 @@ def main():
     print("VISUALIZACIONES COMPLETADAS")
     print("="*80)
     print("\nArchivos generados:")
-    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con {len(imagenes_generadas)+1} páginas)")
+    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 5 páginas)")
     print(f"\n  PDFs individuales:")
     print(f"  • visualizaciones/modelo_estratificacion.pdf")
     print(f"  • visualizaciones/desplazamientos_carga.pdf")
     print(f"  • visualizaciones/tensiones_gravedad.pdf")
-    print(f"  • visualizaciones/tensiones_carga.pdf")
-    print(f"  • visualizaciones/tensiones_total.pdf")
+    print(f"  • visualizaciones/bulbo_presiones.pdf")
     print(f"\n  Imágenes PNG de alta resolución (3x escala):")
     print(f"  • {len(imagenes_generadas)} archivos en visualizaciones/")
     print("\nContenido del reporte:")
     print("  • Página 1: Portada profesional con información del modelo")
-    print("  • Página 2: Estratificación por materiales")
-    print("  • Página 3: Asentamientos por carga (azul → rojo)")
+    print("  • Página 2: Estratificación del modelo")
+    print("  • Página 3: Asentamientos por carga (zapata: bordes negros)")
     print("  • Página 4: Tensiones verticales σv por gravedad")
-    print("  • Página 5: Tensiones incrementales σv por carga")
-    print("  • Página 6: Tensiones totales σv (gravedad + carga)")
+    print("  • Página 5: Bulbo de presiones σv (zapata: bordes rojos)")
     print("\nCaracterísticas:")
+    print("  • Zapata en asentamientos: solo bordes negros (sin elementos de malla)")
+    print("  • Zapata en bulbo: solo bordes rojos (sin volumen)")
+    print("  • Escala bulbo ajustada: [-300, 0] kPa para resaltar distribución")
     print("  • Textos aumentados: Títulos 24pt, Info 16pt")
     print("  • Leyenda: 22pt título, 18pt etiquetas")
-    print("  • Aristas reales visibles (sin suavizado)")
-    print("  • Colormap tensiones: RdBu_r (rojo=compresión, azul=tracción)")
     print("\n" + "="*80)
 
 
