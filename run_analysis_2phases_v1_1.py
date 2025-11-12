@@ -775,20 +775,86 @@ def main():
     print(f"  Presión total (columna + peso propio zapata): {presion_total_kPa:.2f} kPa")
 
     # -------------------------
-    # 6b. ANÁLISIS FASE 2
+    # 6b. ANÁLISIS FASE 2 - 10 PASOS INCREMENTALES
     # -------------------------
     print("\n" + "="*80)
-    print("EJECUTANDO ANÁLISIS FASE 2 - CARGA INCREMENTAL")
+    print("EJECUTANDO ANÁLISIS FASE 2 - CARGA INCREMENTAL (10 PASOS)")
     print("="*80)
 
-    print("Ejecutando análisis de carga incremental...")
-    ok = ops.analyze(1)
+    # Reconfigurar sistema de análisis para carga incremental
+    # Aplicar carga en 10 pasos (factor de carga = 0.1 por paso)
+    ops.integrator('LoadControl', 0.1)  # 10% de la carga por paso
+    ops.algorithm(analisis_cfg['algorithm'])
+    ops.analysis(analisis_cfg['tipo'])
+    print("✓ Sistema de análisis configurado para 10 pasos incrementales (λ = 0.1)")
 
-    if ok == 0:
-        print("✓ Análisis de carga incremental completado exitosamente")
-    else:
-        print("❌ Error en análisis de carga incremental")
-        sys.exit(1)
+    # Identificar nodo central de la zapata para monitorear desplazamientos
+    # Centro en modelo 1/4: (B/4, L/4, z_contacto)
+    x_centro = B_modelo / 2  # 0.5m
+    y_centro = L_modelo / 2  # 0.75m
+    z_contacto = -Df  # -0.5m
+
+    # Buscar nodo más cercano al centro
+    min_dist = float('inf')
+    nodo_centro = None
+    for nid, coords in node_coords.items():
+        dist = np.sqrt((coords[0] - x_centro)**2 +
+                      (coords[1] - y_centro)**2 +
+                      (coords[2] - z_contacto)**2)
+        if dist < min_dist:
+            min_dist = dist
+            nodo_centro = nid
+
+    print(f"✓ Nodo central identificado: {nodo_centro} en ({node_coords[nodo_centro][0]:.3f}, {node_coords[nodo_centro][1]:.3f}, {node_coords[nodo_centro][2]:.3f})")
+    print(f"  Distancia al centro objetivo: {min_dist:.3f} m")
+
+    # Obtener desplazamiento inicial (después de gravedad)
+    disp_grav = ops.nodeDisp(nodo_centro)
+    uz_gravedad = disp_grav[2] * 1000.0  # mm
+
+    # Guardar datos de carga vs desplazamiento incremental
+    carga_pasos = []
+    desplazamiento_incremental = []
+
+    # Aplicar carga en 10 pasos
+    n_pasos = 10
+    print(f"\nEjecutando análisis en {n_pasos} pasos de carga...")
+
+    for paso in range(1, n_pasos + 1):
+        # Ejecutar un paso de análisis (10% de la carga)
+        ok = ops.analyze(1)
+
+        if ok != 0:
+            print(f"❌ Error en paso {paso} del análisis de carga incremental")
+            sys.exit(1)
+
+        # Obtener desplazamiento actual
+        disp_actual = ops.nodeDisp(nodo_centro)
+        uz_total = disp_actual[2] * 1000.0  # mm
+
+        # Calcular desplazamiento incremental (sin gravedad)
+        uz_incremental = uz_total - uz_gravedad  # mm
+
+        # Calcular carga aplicada hasta este paso (en modelo completo)
+        carga_aplicada = (paso / n_pasos) * P_column * 4  # kN (multiplicar x4 para modelo completo)
+
+        # Guardar datos
+        carga_pasos.append(carga_aplicada)
+        desplazamiento_incremental.append(uz_incremental)
+
+        print(f"  Paso {paso}/{n_pasos}: Carga = {carga_aplicada:.1f} kN, Δs = {uz_incremental:.3f} mm")
+
+    print("✓ Análisis de carga incremental completado exitosamente")
+
+    # Guardar datos en CSV para visualización
+    import csv
+    with open('carga_desplazamiento_pasos.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Carga_kN', 'Desplazamiento_incremental_mm'])
+        for carga, despl in zip(carga_pasos, desplazamiento_incremental):
+            writer.writerow([carga, despl])
+
+    print(f"✓ Datos de carga vs desplazamiento guardados en: carga_desplazamiento_pasos.csv")
 
     # -------------------------
     # 7b. EXTRAER RESULTADOS FASE 2
