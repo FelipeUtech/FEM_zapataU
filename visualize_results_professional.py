@@ -658,6 +658,7 @@ def extraer_perfil_vertical(mesh, x_target, y_target, campo_point=None, campo_ce
                             z_min=-30, z_max=0, n_levels=50):
     """
     Extrae un perfil vertical en una ubicación (x, y) específica usando interpolación.
+    Para tensiones, ajusta el valor en z_max para capturar mejor la interfaz.
 
     Args:
         mesh: PyVista UnstructuredGrid con los datos
@@ -666,7 +667,7 @@ def extraer_perfil_vertical(mesh, x_target, y_target, campo_point=None, campo_ce
         campo_point: Nombre del campo en point_data (e.g., 'Settlement_carga_mm')
         campo_cell: Nombre del campo en cell_data (e.g., 'Sigma_v_carga_kPa')
         z_min: Profundidad mínima (más profundo)
-        z_max: Profundidad máxima (superficie)
+        z_max: Profundidad máxima (típicamente -Df para tensiones)
         n_levels: Número de niveles de profundidad a muestrear
 
     Returns:
@@ -725,7 +726,42 @@ def extraer_perfil_vertical(mesh, x_target, y_target, campo_point=None, campo_ce
         linea_interpolada = linea.sample(mesh_con_point)
 
         if campo_cell in linea_interpolada.point_data:
-            perfil['stress'] = linea_interpolada.point_data[campo_cell]
+            stress_values = linea_interpolada.point_data[campo_cell].copy()
+
+            # AJUSTE ESPECIAL: Mejorar el valor en z_max (interfaz) usando elementos del SUELO cercanos
+            # Esto es crucial para capturar la presión P/A en la base de la zapata
+            cell_centers = mesh.cell_centers().points
+            cell_data = mesh.cell_data[campo_cell]
+
+            # Filtrar SOLO elementos del suelo (dominio 1, 2 o 3, NO zapata=4)
+            if 'dominio' in mesh.cell_data:
+                dominios = mesh.cell_data['dominio']
+                mask_suelo = (dominios >= 1) & (dominios <= 3)
+            else:
+                mask_suelo = np.ones(len(cell_data), dtype=bool)
+
+            # Buscar elementos del SUELO justo debajo de z_max (0 a 0.3 m por debajo)
+            dist_xy = np.sqrt((cell_centers[:, 0] - x_target)**2 +
+                            (cell_centers[:, 1] - y_target)**2)
+            # Solo elementos DEBAJO de la interfaz (z < z_max)
+            dist_z_below = cell_centers[:, 2] - z_max  # Negativo = debajo
+
+            # Máscara: elementos del suelo cercanos horizontal y debajo verticalmente
+            mask_near = mask_suelo & (dist_xy < 0.3) & (dist_z_below < 0) & (dist_z_below > -0.3)
+
+            if np.any(mask_near):
+                # Calcular promedio ponderado por distancia inversa
+                dists = np.abs(dist_z_below[mask_near])
+                vals = cell_data[mask_near]
+
+                # Pesos inversamente proporcionales a la distancia
+                weights = 1.0 / (dists + 0.02)  # +0.02 para evitar división por cero
+                valor_interface = np.average(vals, weights=weights)
+
+                # Reemplazar el último valor (z_max) con el calculado
+                stress_values[-1] = valor_interface
+
+            perfil['stress'] = stress_values
         else:
             # Fallback: usar método anterior
             values_cell = []
