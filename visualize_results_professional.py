@@ -809,6 +809,163 @@ def crear_grafica_perfiles_cientifica(perfiles, campo_tipo, output_file, titulo,
     print(f"✓ Gráfica científica guardada: {output_file}")
 
 
+def crear_grafica_carga_desplazamiento(mesh, x_center, y_center, carga_aplicada_kN,
+                                        output_file, es_modelo_cuarto=True):
+    """
+    Crea gráfica de carga vs desplazamiento en el centro de la zapata.
+
+    Args:
+        mesh: PyVista mesh con los datos
+        x_center: Coordenada X del centro
+        y_center: Coordenada Y del centro
+        carga_aplicada_kN: Carga aplicada en kN (del modelo 1/4)
+        output_file: Archivo PNG de salida
+        es_modelo_cuarto: Si True, multiplica carga x4 para obtener carga total
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Extraer desplazamiento en el centro para cada fase
+    points = mesh.points
+
+    # Encontrar nodo más cercano al centro de la zapata
+    # El centro está en la superficie de contacto (z ≈ -0.5m para Df=0.5m)
+    z_contacto = -config.ZAPATA['Df']  # -0.5m
+
+    # Buscar nodo cercano al centro en el contacto
+    dist_xy = np.sqrt((points[:, 0] - x_center)**2 + (points[:, 1] - y_center)**2)
+    dist_z = np.abs(points[:, 2] - z_contacto)
+
+    # Filtrar nodos cercanos al centro en el contacto
+    mask = (dist_xy < 0.2) & (dist_z < 0.2)
+
+    # Extraer datos de asentamiento
+    settlement_gravedad = mesh.point_data['Settlement_gravedad_mm']
+    settlement_total = mesh.point_data['Settlement_total_mm']
+
+    if np.any(mask):
+        s_grav_centro = np.mean(settlement_gravedad[mask])
+        s_total_centro = np.mean(settlement_total[mask])
+    else:
+        # Buscar nodo más cercano
+        target = np.array([x_center, y_center, z_contacto])
+        dist_3d = np.linalg.norm(points - target, axis=1)
+        idx_min = np.argmin(dist_3d)
+        s_grav_centro = settlement_gravedad[idx_min]
+        s_total_centro = settlement_total[idx_min]
+
+    # Preparar datos para el gráfico
+    # Fase 0: Sin carga de columna (solo peso propio)
+    # Fase 1: Con carga de columna
+
+    if es_modelo_cuarto:
+        # Multiplicar por 4 para obtener carga total del modelo completo
+        cargas = [0.0, carga_aplicada_kN * 4]
+        titulo_carga = "Carga Total de Columna"
+    else:
+        cargas = [0.0, carga_aplicada_kN]
+        titulo_carga = "Carga de Columna (1/4 Modelo)"
+
+    asentamientos = [s_grav_centro, s_total_centro]
+
+    # Graficar puntos y línea
+    ax.plot(cargas, asentamientos,
+            marker='o',
+            markersize=12,
+            linewidth=3.0,
+            color='#d62728',  # Rojo
+            linestyle='-',
+            label='Curva Carga-Asentamiento',
+            markerfacecolor='#d62728',
+            markeredgecolor='black',
+            markeredgewidth=2,
+            alpha=0.9)
+
+    # Anotar puntos
+    for i, (carga, asentamiento) in enumerate(zip(cargas, asentamientos)):
+        if i == 0:
+            label = f'Gravedad\n({carga:.0f} kN, {asentamiento:.2f} mm)'
+            xytext = (-60, -25)
+        else:
+            label = f'Carga Total\n({carga:.0f} kN, {asentamiento:.2f} mm)'
+            xytext = (10, 10)
+
+        ax.annotate(label,
+                   xy=(carga, asentamiento),
+                   xytext=xytext,
+                   textcoords='offset points',
+                   fontsize=12,
+                   bbox=dict(boxstyle='round,pad=0.5',
+                           facecolor='yellow',
+                           alpha=0.7,
+                           edgecolor='black'),
+                   arrowprops=dict(arrowstyle='->',
+                                 connectionstyle='arc3,rad=0',
+                                 color='black',
+                                 lw=1.5))
+
+    # Calcular y mostrar rigidez (stiffness)
+    if asentamientos[1] - asentamientos[0] > 0:
+        delta_carga = cargas[1] - cargas[0]
+        delta_asentamiento = asentamientos[1] - asentamientos[0]
+        rigidez = delta_carga / delta_asentamiento  # kN/mm
+
+        # Agregar texto con rigidez
+        ax.text(0.05, 0.95,
+               f'Rigidez (k): {rigidez:.2f} kN/mm\n'
+               f'Δs/ΔP: {1/rigidez:.4f} mm/kN',
+               transform=ax.transAxes,
+               fontsize=13,
+               verticalalignment='top',
+               bbox=dict(boxstyle='round,pad=0.7',
+                       facecolor='lightblue',
+                       alpha=0.8,
+                       edgecolor='black',
+                       linewidth=1.5))
+
+    # Configuración de ejes
+    ax.set_xlabel(f'{titulo_carga} (kN)', fontsize=16, fontweight='bold')
+    ax.set_ylabel('Asentamiento en Centro de Zapata (mm)', fontsize=16, fontweight='bold')
+    ax.set_title('Curva Carga-Asentamiento\nCentro de Zapata',
+                fontsize=18, fontweight='bold', pad=20)
+
+    # Grid profesional
+    ax.grid(True, which='major', linestyle='-', linewidth=0.8, alpha=0.3, color='gray')
+    ax.grid(True, which='minor', linestyle=':', linewidth=0.5, alpha=0.2, color='gray')
+    ax.minorticks_on()
+
+    # Leyenda
+    ax.legend(loc='lower right', fontsize=13, frameon=True, shadow=True,
+             fancybox=True, framealpha=0.95, edgecolor='black')
+
+    # Configuración de ticks
+    ax.tick_params(axis='both', which='major', labelsize=13, width=1.5, length=6)
+    ax.tick_params(axis='both', which='minor', width=1, length=3)
+
+    # Establecer límites con margen
+    x_margin = max(cargas) * 0.1 if max(cargas) > 0 else 10
+    y_margin = (max(asentamientos) - min(asentamientos)) * 0.1
+
+    ax.set_xlim([min(cargas) - x_margin, max(cargas) + x_margin])
+    ax.set_ylim([min(asentamientos) - y_margin, max(asentamientos) + y_margin])
+
+    # Borde del gráfico
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
+        spine.set_edgecolor('black')
+
+    # Ajustar layout
+    plt.tight_layout()
+
+    # Guardar con alta resolución
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.close()
+
+    print(f"✓ Gráfica de carga-asentamiento guardada: {output_file}")
+    print(f"  Asentamiento por gravedad: {s_grav_centro:.3f} mm")
+    print(f"  Asentamiento total: {s_total_centro:.3f} mm")
+    print(f"  Asentamiento por carga: {s_total_centro - s_grav_centro:.3f} mm")
+
+
 def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
     """
     Crea un PDF multipágina profesional con las imágenes generadas.
@@ -1085,6 +1242,31 @@ def main():
         "Variación de tensiones verticales incrementales Δσv con la profundidad"
     ))
 
+    # 7. CURVA CARGA-ASENTAMIENTO en el centro de la zapata
+    print("\n7. Generando curva carga-asentamiento en el centro de la zapata...")
+
+    # Centro de la zapata en modelo 1/4
+    x_centro_zapata = B_cuarto / 2  # 0.5m
+    y_centro_zapata = L_cuarto / 2  # 0.75m
+
+    # Carga aplicada (1/4 del modelo)
+    P_cuarto = config.CARGAS['P_column'] / 4  # 250 kN
+
+    img_carga_asentamiento = 'visualizaciones/curva_carga_asentamiento.png'
+    crear_grafica_carga_desplazamiento(
+        mesh,
+        x_center=x_centro_zapata,
+        y_center=y_centro_zapata,
+        carga_aplicada_kN=P_cuarto,
+        output_file=img_carga_asentamiento,
+        es_modelo_cuarto=True  # Multiplicar por 4 para mostrar carga total
+    )
+    imagenes_generadas.append((
+        img_carga_asentamiento,
+        "Curva Carga-Asentamiento",
+        "Relación carga-desplazamiento en el centro de la zapata (análisis 2 fases)"
+    ))
+
     # Preparar configuración para PDF
     configuracion = {
         'B': config.ZAPATA['B'],
@@ -1124,7 +1306,7 @@ def main():
     print("VISUALIZACIONES COMPLETADAS")
     print("="*80)
     print("\nArchivos generados:")
-    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 7 páginas)")
+    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 8 páginas)")
     print(f"\n  PDFs individuales:")
     print(f"  • visualizaciones/modelo_estratificacion.pdf")
     print(f"  • visualizaciones/desplazamientos_carga.pdf")
@@ -1132,6 +1314,7 @@ def main():
     print(f"  • visualizaciones/bulbo_presiones.pdf")
     print(f"  • visualizaciones/perfil_asentamientos.pdf")
     print(f"  • visualizaciones/perfil_tensiones_incrementales.pdf")
+    print(f"  • visualizaciones/curva_carga_asentamiento.pdf")
     print(f"\n  Imágenes PNG de alta resolución (300 DPI):")
     print(f"  • {len(imagenes_generadas)} archivos en visualizaciones/")
     print("\nContenido del reporte:")
@@ -1142,11 +1325,13 @@ def main():
     print("  • Página 5: Bulbo de presiones σv (zapata: bordes rojos)")
     print("  • Página 6: Perfiles verticales de asentamiento")
     print("  • Página 7: Perfiles verticales de tensiones incrementales Δσv")
+    print("  • Página 8: Curva carga-asentamiento en el centro")
     print("\nCaracterísticas:")
     print("  • Zapata en asentamientos: solo bordes negros (sin elementos de malla)")
     print("  • Zapata en bulbo: solo bordes rojos (sin volumen)")
     print("  • Escala bulbo ajustada: [-300, 0] kPa para resaltar distribución")
     print("  • Perfiles científicos: 4 ubicaciones (centro + 3 esquinas)")
+    print("  • Curva carga-asentamiento: Con rigidez k (kN/mm) calculada")
     print("  • Gráficas con grid, leyenda profesional, y formato científico")
     print("  • Textos aumentados: Títulos 24pt, Info 16pt")
     print("  • Leyenda: 22pt título, 18pt etiquetas")
