@@ -654,6 +654,161 @@ def crear_vista_bulbo_sin_zapata(mesh, campo, output_file, titulo="Bulbo de Pres
     print(f"✓ Vista de bulbo sin zapata guardada: {output_file}")
 
 
+def extraer_perfil_vertical(mesh, x_target, y_target, campo_point=None, campo_cell=None,
+                            z_min=-30, z_max=0, n_levels=50):
+    """
+    Extrae un perfil vertical en una ubicación (x, y) específica.
+
+    Args:
+        mesh: PyVista UnstructuredGrid con los datos
+        x_target: Coordenada X objetivo
+        y_target: Coordenada Y objetivo
+        campo_point: Nombre del campo en point_data (e.g., 'Settlement_carga_mm')
+        campo_cell: Nombre del campo en cell_data (e.g., 'Sigma_v_carga_kPa')
+        z_min: Profundidad mínima (más profundo)
+        z_max: Profundidad máxima (superficie)
+        n_levels: Número de niveles de profundidad a muestrear
+
+    Returns:
+        dict con 'z', 'settlement', 'stress' (los que apliquen)
+    """
+    # Crear niveles de profundidad
+    z_levels = np.linspace(z_min, z_max, n_levels)
+
+    # Arrays para almacenar resultados
+    perfil = {'z': z_levels}
+
+    # Extraer datos de punto (settlements)
+    if campo_point and campo_point in mesh.point_data:
+        values_point = []
+        points = mesh.points
+        point_data = mesh.point_data[campo_point]
+
+        for z in z_levels:
+            # Encontrar nodos cercanos a (x_target, y_target, z)
+            target = np.array([x_target, y_target, z])
+
+            # Calcular distancia horizontal (ignorar z para buscar en ese nivel)
+            dist_xy = np.sqrt((points[:, 0] - x_target)**2 + (points[:, 1] - y_target)**2)
+            dist_z = np.abs(points[:, 2] - z)
+
+            # Filtrar nodos en una banda vertical cercana
+            mask = (dist_xy < 0.3) & (dist_z < 0.3)  # Tolerancia de búsqueda
+
+            if np.any(mask):
+                # Tomar promedio de nodos cercanos
+                values_point.append(np.mean(point_data[mask]))
+            else:
+                # Si no hay nodos cercanos, buscar el más cercano en 3D
+                dist_3d = np.linalg.norm(points - target, axis=1)
+                idx_min = np.argmin(dist_3d)
+                values_point.append(point_data[idx_min])
+
+        perfil['settlement'] = np.array(values_point)
+
+    # Extraer datos de celda (stresses)
+    if campo_cell and campo_cell in mesh.cell_data:
+        values_cell = []
+        cell_centers = mesh.cell_centers().points
+        cell_data = mesh.cell_data[campo_cell]
+
+        for z in z_levels:
+            # Encontrar celdas cercanas a (x_target, y_target, z)
+            dist_xy = np.sqrt((cell_centers[:, 0] - x_target)**2 +
+                            (cell_centers[:, 1] - y_target)**2)
+            dist_z = np.abs(cell_centers[:, 2] - z)
+
+            # Filtrar celdas cercanas
+            mask = (dist_xy < 0.3) & (dist_z < 0.3)
+
+            if np.any(mask):
+                # Tomar promedio de celdas cercanas
+                values_cell.append(np.mean(cell_data[mask]))
+            else:
+                # Buscar celda más cercana en 3D
+                target = np.array([x_target, y_target, z])
+                dist_3d = np.linalg.norm(cell_centers - target, axis=1)
+                idx_min = np.argmin(dist_3d)
+                values_cell.append(cell_data[idx_min])
+
+        perfil['stress'] = np.array(values_cell)
+
+    return perfil
+
+
+def crear_grafica_perfiles_cientifica(perfiles, campo_tipo, output_file, titulo,
+                                        xlabel, ylabel="Profundidad (m)"):
+    """
+    Crea gráfica científica de perfiles verticales con calidad profesional.
+
+    Args:
+        perfiles: Lista de diccionarios con 'z' y datos, cada uno con 'label'
+        campo_tipo: 'settlement' o 'stress'
+        output_file: Archivo PNG de salida
+        titulo: Título de la gráfica
+        xlabel: Etiqueta del eje X con unidades
+        ylabel: Etiqueta del eje Y (profundidad)
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Colores y estilos profesionales para cada ubicación
+    colores = ['#d62728', '#1f77b4', '#2ca02c', '#ff7f0e']  # Rojo, azul, verde, naranja
+    markers = ['o', 's', '^', 'D']  # Círculo, cuadrado, triángulo, diamante
+    linestyles = ['-', '--', '-.', ':']
+
+    # Graficar cada perfil
+    for i, perfil in enumerate(perfiles):
+        z_data = perfil['z']
+        values = perfil[campo_tipo]
+        label = perfil['label']
+
+        ax.plot(values, z_data,
+               color=colores[i],
+               marker=markers[i],
+               markersize=6,
+               linewidth=2.5,
+               linestyle=linestyles[i],
+               label=label,
+               markevery=3,  # Mostrar marcador cada 3 puntos para claridad
+               alpha=0.9)
+
+    # Configuración de ejes
+    ax.set_xlabel(xlabel, fontsize=16, fontweight='bold')
+    ax.set_ylabel(ylabel, fontsize=16, fontweight='bold')
+    ax.set_title(titulo, fontsize=18, fontweight='bold', pad=20)
+
+    # Grid profesional
+    ax.grid(True, which='major', linestyle='-', linewidth=0.8, alpha=0.3, color='gray')
+    ax.grid(True, which='minor', linestyle=':', linewidth=0.5, alpha=0.2, color='gray')
+    ax.minorticks_on()
+
+    # Leyenda profesional
+    ax.legend(loc='best', fontsize=13, frameon=True, shadow=True,
+             fancybox=True, framealpha=0.95, edgecolor='black')
+
+    # Configuración de ticks
+    ax.tick_params(axis='both', which='major', labelsize=13, width=1.5, length=6)
+    ax.tick_params(axis='both', which='minor', width=1, length=3)
+
+    # Formato de números en ejes
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:.2f}'))
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, p: f'{y:.1f}'))
+
+    # Borde del gráfico
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
+        spine.set_edgecolor('black')
+
+    # Ajustar layout
+    plt.tight_layout()
+
+    # Guardar con alta resolución
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.close()
+
+    print(f"✓ Gráfica científica guardada: {output_file}")
+
+
 def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
     """
     Crea un PDF multipágina profesional con las imágenes generadas.
@@ -847,6 +1002,89 @@ def main():
             "Distribución de tensiones verticales σv en el suelo por carga de columna (zapata: bordes rojos)"
         ))
 
+    # 5. PERFILES VERTICALES - Asentamientos
+    print("\n5. Generando perfiles verticales de asentamientos...")
+
+    # Definir ubicaciones de interés (modelo 1/4)
+    # B = 2.0m, L = 3.0m en el modelo completo
+    # B/2 = 1.0m, L/2 = 1.5m en el modelo 1/4
+    B_cuarto = config.ZAPATA['B'] / 2  # 1.0m
+    L_cuarto = config.ZAPATA['L'] / 2  # 1.5m
+
+    ubicaciones = [
+        {'x': B_cuarto/2, 'y': L_cuarto/2, 'label': 'Centro Zapata'},
+        {'x': 0.0, 'y': 0.0, 'label': 'Esquina (0, 0)'},
+        {'x': B_cuarto, 'y': 0.0, 'label': f'Esquina ({B_cuarto:.1f}, 0)'},
+        {'x': 0.0, 'y': L_cuarto, 'label': f'Esquina (0, {L_cuarto:.1f})'}
+    ]
+
+    # Extraer perfiles de asentamientos
+    perfiles_settlement = []
+    for ubi in ubicaciones:
+        perfil = extraer_perfil_vertical(
+            mesh,
+            ubi['x'],
+            ubi['y'],
+            campo_point='Settlement_carga_mm',
+            z_min=-30,
+            z_max=0,
+            n_levels=60
+        )
+        perfil['label'] = ubi['label']
+        perfiles_settlement.append(perfil)
+        print(f"  ✓ Perfil extraído en {ubi['label']}: ({ubi['x']:.2f}, {ubi['y']:.2f})")
+
+    # Crear gráfica de asentamientos
+    img_perfil_settlement = 'visualizaciones/perfil_asentamientos.png'
+    crear_grafica_perfiles_cientifica(
+        perfiles_settlement,
+        campo_tipo='settlement',
+        output_file=img_perfil_settlement,
+        titulo='Perfiles Verticales de Asentamiento',
+        xlabel='Asentamiento (mm)',
+        ylabel='Profundidad (m)'
+    )
+    imagenes_generadas.append((
+        img_perfil_settlement,
+        "Perfiles Verticales de Asentamiento",
+        "Variación del asentamiento con la profundidad en el centro y esquinas de la zapata"
+    ))
+
+    # 6. PERFILES VERTICALES - Tensiones Incrementales
+    print("\n6. Generando perfiles verticales de tensiones incrementales...")
+
+    # Extraer perfiles de tensiones
+    perfiles_stress = []
+    for ubi in ubicaciones:
+        perfil = extraer_perfil_vertical(
+            mesh,
+            ubi['x'],
+            ubi['y'],
+            campo_cell='Sigma_v_carga_kPa',
+            z_min=-30,
+            z_max=0,
+            n_levels=60
+        )
+        perfil['label'] = ubi['label']
+        perfiles_stress.append(perfil)
+        print(f"  ✓ Perfil extraído en {ubi['label']}: ({ubi['x']:.2f}, {ubi['y']:.2f})")
+
+    # Crear gráfica de tensiones incrementales
+    img_perfil_stress = 'visualizaciones/perfil_tensiones_incrementales.png'
+    crear_grafica_perfiles_cientifica(
+        perfiles_stress,
+        campo_tipo='stress',
+        output_file=img_perfil_stress,
+        titulo='Perfiles Verticales de Tensiones Incrementales Δσv',
+        xlabel='Tensión Incremental Δσv (kPa)',
+        ylabel='Profundidad (m)'
+    )
+    imagenes_generadas.append((
+        img_perfil_stress,
+        "Perfiles Verticales de Tensiones Incrementales",
+        "Variación de tensiones verticales incrementales Δσv con la profundidad"
+    ))
+
     # Preparar configuración para PDF
     configuracion = {
         'B': config.ZAPATA['B'],
@@ -886,13 +1124,15 @@ def main():
     print("VISUALIZACIONES COMPLETADAS")
     print("="*80)
     print("\nArchivos generados:")
-    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 5 páginas)")
+    print(f"  • Reporte_Analisis_FEM.pdf (PDF multipágina con 7 páginas)")
     print(f"\n  PDFs individuales:")
     print(f"  • visualizaciones/modelo_estratificacion.pdf")
     print(f"  • visualizaciones/desplazamientos_carga.pdf")
     print(f"  • visualizaciones/tensiones_gravedad.pdf")
     print(f"  • visualizaciones/bulbo_presiones.pdf")
-    print(f"\n  Imágenes PNG de alta resolución (3x escala):")
+    print(f"  • visualizaciones/perfil_asentamientos.pdf")
+    print(f"  • visualizaciones/perfil_tensiones_incrementales.pdf")
+    print(f"\n  Imágenes PNG de alta resolución (300 DPI):")
     print(f"  • {len(imagenes_generadas)} archivos en visualizaciones/")
     print("\nContenido del reporte:")
     print("  • Página 1: Portada profesional con información del modelo")
@@ -900,10 +1140,14 @@ def main():
     print("  • Página 3: Asentamientos por carga (zapata: bordes negros)")
     print("  • Página 4: Tensiones verticales σv por gravedad")
     print("  • Página 5: Bulbo de presiones σv (zapata: bordes rojos)")
+    print("  • Página 6: Perfiles verticales de asentamiento")
+    print("  • Página 7: Perfiles verticales de tensiones incrementales Δσv")
     print("\nCaracterísticas:")
     print("  • Zapata en asentamientos: solo bordes negros (sin elementos de malla)")
     print("  • Zapata en bulbo: solo bordes rojos (sin volumen)")
     print("  • Escala bulbo ajustada: [-300, 0] kPa para resaltar distribución")
+    print("  • Perfiles científicos: 4 ubicaciones (centro + 3 esquinas)")
+    print("  • Gráficas con grid, leyenda profesional, y formato científico")
     print("  • Textos aumentados: Títulos 24pt, Info 16pt")
     print("  • Leyenda: 22pt título, 18pt etiquetas")
     print("\n" + "="*80)
