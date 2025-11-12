@@ -819,7 +819,7 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
     """
     import csv
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(12, 10))
 
     # Leer datos del CSV
     cargas = []
@@ -830,7 +830,8 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
             reader = csv.DictReader(f)
             for row in reader:
                 cargas.append(float(row['Carga_kN']))
-                asentamientos.append(float(row['Desplazamiento_incremental_mm']))
+                # Convertir a positivo (asentamiento hacia abajo = positivo)
+                asentamientos.append(abs(float(row['Desplazamiento_incremental_mm'])))
 
         print(f"✓ Datos leídos desde {csv_file}: {len(cargas)} puntos")
     except FileNotFoundError:
@@ -838,50 +839,18 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
         cargas = [0, 1000]
         asentamientos = [0, 50]
 
-    # Graficar puntos y línea
-    ax.plot(cargas, asentamientos,
+    # Graficar puntos y línea (EJES INTERCAMBIADOS: X=asentamiento, Y=carga)
+    ax.plot(asentamientos, cargas,
             marker='o',
-            markersize=8,
-            linewidth=2.5,
+            markersize=10,
+            linewidth=3.0,
             color='#d62728',  # Rojo
             linestyle='-',
             label='Curva Carga-Asentamiento Incremental',
             markerfacecolor='#d62728',
             markeredgecolor='black',
-            markeredgewidth=1.5,
+            markeredgewidth=2,
             alpha=0.9)
-
-    # Anotar solo primer y último punto
-    if len(cargas) > 0:
-        # Primer punto
-        ax.annotate(f'Inicio\n({cargas[0]:.0f} kN, {asentamientos[0]:.2f} mm)',
-                   xy=(cargas[0], asentamientos[0]),
-                   xytext=(20, -30),
-                   textcoords='offset points',
-                   fontsize=11,
-                   bbox=dict(boxstyle='round,pad=0.4',
-                           facecolor='lightgreen',
-                           alpha=0.7,
-                           edgecolor='black'),
-                   arrowprops=dict(arrowstyle='->',
-                                 connectionstyle='arc3,rad=-20',
-                                 color='black',
-                                 lw=1.2))
-
-        # Último punto
-        ax.annotate(f'Carga máxima\n({cargas[-1]:.0f} kN, {asentamientos[-1]:.2f} mm)',
-                   xy=(cargas[-1], asentamientos[-1]),
-                   xytext=(-80, 20),
-                   textcoords='offset points',
-                   fontsize=11,
-                   bbox=dict(boxstyle='round,pad=0.4',
-                           facecolor='yellow',
-                           alpha=0.7,
-                           edgecolor='black'),
-                   arrowprops=dict(arrowstyle='->',
-                                 connectionstyle='arc3,rad=20',
-                                 color='black',
-                                 lw=1.2))
 
     # Calcular y mostrar rigidez (stiffness) como pendiente promedio
     if len(cargas) > 1 and asentamientos[-1] - asentamientos[0] > 0:
@@ -895,7 +864,7 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
                f'Rigidez promedio (k): {rigidez:.2f} kN/mm\n'
                f'Δs/ΔP: {1/rigidez:.4f} mm/kN',
                transform=ax.transAxes,
-               fontsize=12,
+               fontsize=14,
                verticalalignment='top',
                bbox=dict(boxstyle='round,pad=0.7',
                        facecolor='lightblue',
@@ -903,11 +872,11 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
                        edgecolor='black',
                        linewidth=1.5))
 
-    # Configuración de ejes
-    ax.set_xlabel('Carga de Columna (kN)', fontsize=16, fontweight='bold')
-    ax.set_ylabel('Asentamiento Incremental en Centro (mm)', fontsize=16, fontweight='bold')
+    # Configuración de ejes (INTERCAMBIADOS)
+    ax.set_xlabel('Asentamiento Incremental (mm)', fontsize=18, fontweight='bold')
+    ax.set_ylabel('Carga de Columna (kN)', fontsize=18, fontweight='bold')
     ax.set_title('Curva Carga-Asentamiento Incremental\nCentro de Zapata (Sin Gravedad)',
-                fontsize=18, fontweight='bold', pad=20)
+                fontsize=20, fontweight='bold', pad=20)
 
     # Grid profesional
     ax.grid(True, which='major', linestyle='-', linewidth=0.8, alpha=0.3, color='gray')
@@ -915,22 +884,25 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
     ax.minorticks_on()
 
     # Leyenda
-    ax.legend(loc='lower right', fontsize=13, frameon=True, shadow=True,
+    ax.legend(loc='lower right', fontsize=15, frameon=True, shadow=True,
              fancybox=True, framealpha=0.95, edgecolor='black')
 
     # Configuración de ticks
-    ax.tick_params(axis='both', which='major', labelsize=13, width=1.5, length=6)
+    ax.tick_params(axis='both', which='major', labelsize=15, width=1.5, length=6)
     ax.tick_params(axis='both', which='minor', width=1, length=3)
 
-    # Establecer límites con margen
+    # Establecer límites con margen (EJES INTERCAMBIADOS)
     if len(cargas) > 0:
-        x_margin = max(cargas) * 0.05 if max(cargas) > 0 else 10
-        y_min = min(asentamientos)
-        y_max = max(asentamientos)
-        y_margin = (y_max - y_min) * 0.1 if y_max > y_min else 1
+        # X = asentamiento
+        x_min = min(asentamientos)
+        x_max = max(asentamientos)
+        x_margin = (x_max - x_min) * 0.05 if x_max > x_min else 1
 
-        ax.set_xlim([-x_margin, max(cargas) + x_margin])
-        ax.set_ylim([y_min - y_margin, y_max + y_margin])
+        # Y = carga
+        y_margin = max(cargas) * 0.05 if max(cargas) > 0 else 10
+
+        ax.set_xlim([x_min - x_margin, x_max + x_margin])
+        ax.set_ylim([-y_margin, max(cargas) + y_margin])
 
     # Borde del gráfico
     for spine in ax.spines.values():
@@ -946,8 +918,8 @@ def crear_grafica_carga_desplazamiento(csv_file, output_file):
 
     print(f"✓ Gráfica de carga-asentamiento guardada: {output_file}")
     if len(cargas) > 0:
-        print(f"  Rango de carga: 0 → {cargas[-1]:.1f} kN")
-        print(f"  Rango de asentamiento incremental: {asentamientos[0]:.3f} → {asentamientos[-1]:.3f} mm")
+        print(f"  Rango de asentamiento: {asentamientos[0]:.3f} → {asentamientos[-1]:.3f} mm (horizontal)")
+        print(f"  Rango de carga: 0 → {cargas[-1]:.1f} kN (vertical)")
 
 
 def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
