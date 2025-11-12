@@ -175,8 +175,8 @@ print(f"  Tamaño elemento máximo (fronteras): {lc_max:.3f}m")
 def size_callback(dim, tag, x, y, z, lc):
     """
     Calcula tamaño de elemento con refinamiento gradual:
-    - Muy fino en zapata y primer estrato
-    - Crecimiento suave con profundidad
+    - Muy fino en zapata y zona del bulbo (hasta -9m)
+    - Elementos grandes después de -9m
     - Transición gradual en horizontal
     """
     # Verificar si está dentro o cerca de la zapata
@@ -193,24 +193,18 @@ def size_callback(dim, tag, x, y, z, lc):
     dy = max(0, max(y0 - y, y - (y0 + foot_length)))
     dist_horizontal = np.sqrt(dx**2 + dy**2)
 
-    # Factor de refinamiento vertical basado en profundidad
-    # Primer estrato (0 a -4.5m): muy refinado
-    # Estratos profundos: más grueso
+    # Profundidad límite para refinamiento: -3×max(B,L) = -9m
+    z_refine_limit = -9.0
     profundidad = abs(z)  # z es negativo hacia abajo
 
-    if profundidad <= H1:  # Primer estrato (0 a -4.5m)
-        # Refinamiento progresivo dentro del primer estrato
-        factor_vertical = 1.0 + 0.3 * (profundidad / H1)  # Crece 30% en el estrato
+    # Factor de refinamiento vertical basado en profundidad
+    if profundidad <= 9.0:  # Zona del bulbo (0 a -9m): REFINADO
+        # Crecimiento gradual hasta -9m
+        factor_vertical = 1.0 + 0.8 * (profundidad / 9.0)  # Crece 80% hasta -9m
         lc_vertical = lc_min * factor_vertical
-    elif profundidad <= H1 + H2:  # Segundo estrato (-4.5 a -9m)
-        # Crecimiento más rápido en segundo estrato
-        depth_in_stratum = profundidad - H1
-        factor_vertical = 1.3 + 0.5 * (depth_in_stratum / H2)  # Crece 50% más
-        lc_vertical = lc_min * factor_vertical
-    else:  # Tercer estrato (-9 a -15m)
-        # Elementos más grandes en profundidad
-        factor_vertical = 1.8 + 0.4 * ((profundidad - H1 - H2) / H3)
-        lc_vertical = lc_min * factor_vertical
+    else:  # Más profundo que -9m: elementos GRANDES
+        # Elementos grandes para ahorrar costo computacional
+        lc_vertical = lc_max
 
     # Factor de refinamiento horizontal desde zapata
     if dist_horizontal < 0.5:

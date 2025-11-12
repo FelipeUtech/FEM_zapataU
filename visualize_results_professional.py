@@ -418,6 +418,134 @@ def crear_vista_tensiones(mesh, campo, output_file, titulo="Tensiones Verticales
     print(f"✓ Vista de tensiones guardada: {output_file}")
 
 
+def crear_vista_bulbo_sin_zapata(mesh, campo, output_file, titulo="Bulbo de Presiones",
+                                  unidades="kPa", cmap='RdBu_r', clim=None):
+    """
+    Crea vista del bulbo de presiones SIN zapata (solo suelo) con bordes de zapata en rojo.
+
+    Args:
+        mesh: PyVista mesh con los datos
+        campo: Nombre del campo de tensiones en cell_data
+        output_file: Archivo de salida PNG
+        titulo: Título de la visualización
+        unidades: Unidades del campo
+        cmap: Colormap (RdBu_r para tensiones)
+        clim: Rango personalizado [min, max] para escala de colores
+    """
+    plotter = pv.Plotter(off_screen=True, window_size=[2400, 1800])
+    plotter.set_background('white')
+
+    # Iluminación profesional
+    plotter.add_light(pv.Light(position=(10, 10, 10), intensity=0.8))
+    plotter.add_light(pv.Light(position=(-10, -5, 5), intensity=0.3))
+    plotter.add_light(pv.Light(intensity=0.3, light_type='headlight'))
+
+    # Separar zapata y suelo usando threshold
+    # Suelo: dominios 1, 2, 3
+    # Zapata: dominio 4
+
+    # Extraer solo el suelo (dominios 1, 2, 3)
+    suelo_mesh = mesh.threshold([1, 3], scalars='dominio')
+
+    # Extraer solo la zapata para bordes
+    zapata_mesh = mesh.threshold([4, 4], scalars='dominio')
+
+    # Obtener datos de tensiones
+    if campo in mesh.cell_data:
+        data = mesh.cell_data[campo]
+        vmin, vmax = data.min(), data.max()
+    else:
+        vmin, vmax = -300, 0
+
+    # Si se proporciona rango personalizado, usarlo
+    if clim is not None:
+        vmin, vmax = clim
+
+    # Agregar suelo con tensiones (colormap)
+    plotter.add_mesh(
+        suelo_mesh,
+        scalars=campo,
+        cmap=cmap,
+        show_edges=True,
+        edge_color='black',
+        line_width=0.3,
+        opacity=1.0,
+        smooth_shading=False,
+        specular=0.15,
+        clim=[vmin, vmax],
+        scalar_bar_args={
+            'title': f'{unidades}',
+            'title_font_size': 22,
+            'label_font_size': 18,
+            'n_labels': 8,
+            'italic': False,
+            'fmt': '%.1f',
+            'font_family': 'arial',
+            'vertical': True,
+            'height': 0.65,
+            'width': 0.10,
+            'position_x': 0.86,
+            'position_y': 0.17,
+            'color': 'black'
+        }
+    )
+
+    # Agregar SOLO los bordes de la zapata en ROJO
+    plotter.add_mesh(
+        zapata_mesh,
+        style='wireframe',
+        color='red',
+        line_width=3.0,
+        opacity=1.0,
+        label='Zapata'
+    )
+
+    # Configurar cámara
+    configurar_camara_isometrica(plotter, mesh)
+
+    # Ejes
+    try:
+        plotter.add_axes(
+            xlabel='X',
+            ylabel='Y',
+            zlabel='Z',
+            line_width=3,
+            color='black',
+            x_color='red',
+            y_color='green',
+            z_color='blue'
+        )
+    except Exception as e:
+        print(f"  Advertencia: No se pudieron agregar ejes: {e}")
+
+    # Título
+    plotter.add_text(
+        titulo,
+        position='upper_edge',
+        font_size=24,
+        color='black',
+        font='arial'
+    )
+
+    # Estadísticas (usando datos del suelo solamente)
+    suelo_data = suelo_mesh.cell_data[campo]
+    info_text = f"Máx: {suelo_data.max():.1f} {unidades} | Mín: {suelo_data.min():.1f} {unidades} | Media: {suelo_data.mean():.1f} {unidades}"
+    plotter.add_text(
+        info_text,
+        position=(0.45, 0.02),
+        font_size=16,
+        color='black',
+        font='arial',
+        viewport=True
+    )
+
+    # Renderizar
+    plotter.screenshot(output_file, scale=3)
+    plotter.close()
+
+    print(f"✓ Vista de bulbo sin zapata guardada: {output_file}")
+
+
 def crear_pdf_multipagina(imagenes, output_pdf, configuracion):
     """
     Crea un PDF multipágina profesional con las imágenes generadas.
@@ -526,7 +654,7 @@ def main():
     print("="*80)
 
     # Archivo de entrada
-    vtu_file = "resultados_2phases.vtu"
+    vtu_file = "resultados_2phases_v1_1.vtu"
 
     print(f"\nLeyendo archivo: {vtu_file}")
     try:
@@ -609,6 +737,24 @@ def main():
             img_sigma_carga,
             "Fase 2: Tensiones Incrementales por Carga",
             "Incremento de tensiones verticales σv debido a la carga de columna (250 kN)"
+        ))
+
+        # 4b. BULBO DE PRESIONES sin zapata (solo suelo + bordes rojos)
+        print("\n4b. Generando vista del bulbo de presiones (sin zapata)...")
+        img_bulbo = 'visualizaciones/bulbo_presiones.png'
+        crear_vista_bulbo_sin_zapata(
+            mesh,
+            'Sigma_v_carga_kPa',
+            img_bulbo,
+            titulo="Bulbo de Presiones σv - Solo Suelo (Bordes de Zapata en Rojo)",
+            unidades="kPa",
+            cmap='RdBu_r',
+            clim=[-300, 0]  # Rango ajustado para resaltar el bulbo
+        )
+        imagenes_generadas.append((
+            img_bulbo,
+            "Bulbo de Presiones en el Suelo",
+            "Distribución de tensiones verticales σv en el suelo por carga de columna (zapata: solo bordes rojos)"
         ))
 
     # 5. Tensiones verticales totales
