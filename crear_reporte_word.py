@@ -12,15 +12,15 @@ import matplotlib
 matplotlib.use('Agg')  # Backend sin GUI
 
 # Configuración
-RESULTADOS_DIR = 'resultados_Df_analisis'
-OUTPUT_WORD = 'Analisis_Comparativo_Df.docx'
+RESULTADOS_DIR = 'resultados_Chancado_Df_analisis'
+OUTPUT_WORD = 'Analisis_Comparativo_Chancado_Df.docx'
 
 def leer_resultados():
     """Lee los resultados de todos los análisis"""
     datos = []
 
     # Lista de valores Df analizados
-    df_values = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    df_values = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
     for df in df_values:
         df_dir = os.path.join(RESULTADOS_DIR, f'Df_{df}m')
@@ -124,11 +124,11 @@ def crear_documento_word(datos, grafico_file):
     doc.add_heading('1. INFORMACIÓN DEL PROYECTO', 1)
     p = doc.add_paragraph()
     p.add_run('Estructura: ').bold = True
-    p.add_run('EDIFICIO DE MOLIENDA\n')
+    p.add_run('CHANCADO PRIMARIO\n')
     p.add_run('Zapata: ').bold = True
-    p.add_run('6.0m × 8.0m × 1.0m\n')
+    p.add_run('1.8m × 2.0m × 0.5m\n')
     p.add_run('Carga de columna: ').bold = True
-    p.add_run('6,288 kN (total)\n')
+    p.add_run('414 kN (presión: 115 kPa)\n')
     p.add_run('Modelo: ').bold = True
     p.add_run('Análisis FEM 3D con simetría (1/4)\n')
     p.add_run('Software: ').bold = True
