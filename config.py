@@ -4,21 +4,21 @@ Archivo de configuración para la generación de mallas de zapatas.
 """
 
 # Nombre de la estructura
-NOMBRE_ESTRUCTURA = "EDIFICIO DE MOLIENDA"
+NOMBRE_ESTRUCTURA = "FLOTACIÓN Cu y Pb"
 
-# Parámetros de la zapata - EDIFICIO DE MOLIENDA
+# Parámetros de la zapata - FLOTACIÓN Cu y Pb
 ZAPATA = {
-    'B': 6.0,      # Ancho (m)
-    'L': 8.0,      # Largo (m)
-    'h': 1.0,      # Altura/espesor (m)
+    'B': 4.2,      # Ancho (m)
+    'L': 4.8,      # Largo (m)
+    'h': 0.7,      # Altura/espesor (m)
     'Df': 4.0,     # Profundidad de desplante (m)
 }
 
-# Estratos de suelo - EDIFICIO DE MOLIENDA (de arriba hacia abajo)
+# Estratos de suelo - FLOTACIÓN Cu y Pb (de arriba hacia abajo)
 ESTRATOS_SUELO = [
     {
         'nombre': 'Estrato 1',
-        'espesor': 6.45,  # metros (profundidad: 0 a 6.45 m)
+        'espesor': 9.7,   # metros (profundidad: 0 a 9.7 m)
         'E': 5e6,         # Módulo de Young (Pa) - 5 MPa
         'nu': 0.35,       # Coeficiente de Poisson
         'rho': 1835,      # Densidad (kg/m³) - convertido de 18 kN/m³
@@ -26,7 +26,7 @@ ESTRATOS_SUELO = [
     },
     {
         'nombre': 'Estrato 2',
-        'espesor': 2.25,  # metros (profundidad: 6.45 a 8.7 m)
+        'espesor': 5.2,   # metros (profundidad: 9.7 a 14.9 m)
         'E': 12e6,        # 12 MPa
         'nu': 0.30,       # Coeficiente de Poisson
         'rho': 1937,      # Densidad (kg/m³) - convertido de 19 kN/m³
@@ -34,7 +34,7 @@ ESTRATOS_SUELO = [
     },
     {
         'nombre': 'Estrato 3',
-        'espesor': 11.3,  # metros (profundidad: 8.7 a 20.0 m)
+        'espesor': 5.1,   # metros (profundidad: 14.9 a 20.0 m)
         'E': 50e6,        # 50 MPa
         'nu': 0.20,       # Coeficiente de Poisson
         'rho': 2039,      # Densidad (kg/m³) - convertido de 20 kN/m³
@@ -60,9 +60,9 @@ DOMINIO = {
     'profundidad': sum(e['espesor'] for e in ESTRATOS_SUELO),  # Profundidad total (suma de estratos)
 }
 
-# Cargas aplicadas - EDIFICIO DE MOLIENDA
+# Cargas aplicadas - FLOTACIÓN Cu y Pb
 CARGAS = {
-    'P_column': 6288.0,  # Carga de columna en kN (presión: 131 kPa, se divide automáticamente para modelo 1/4)
+    'P_column': 2419.2,  # Carga de columna en kN (presión: 120 kPa, se divide automáticamente para modelo 1/4)
 }
 
 # Configuración del análisis

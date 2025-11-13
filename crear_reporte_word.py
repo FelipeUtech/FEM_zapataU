@@ -12,8 +12,8 @@ import matplotlib
 matplotlib.use('Agg')  # Backend sin GUI
 
 # Configuración
-RESULTADOS_DIR = 'resultados_Df_analisis'
-OUTPUT_WORD = 'Analisis_Comparativo_Df.docx'
+RESULTADOS_DIR = 'resultados_Flotacion_Df_analisis'
+OUTPUT_WORD = 'Analisis_Comparativo_Flotacion_Df.docx'
 
 def leer_resultados():
     """Lee los resultados de todos los análisis"""
@@ -77,7 +77,7 @@ def crear_grafico(datos):
     # Configuración del gráfico
     ax.set_xlabel('Profundidad de Desplante Df (m)', fontsize=12, fontweight='bold')
     ax.set_ylabel('Asentamiento por Carga - Fase 2 (mm)', fontsize=12, fontweight='bold')
-    ax.set_title('Asentamiento del Centro de Zapata vs Profundidad de Desplante\nEDIFICIO DE MOLIENDA',
+    ax.set_title('Asentamiento del Centro de Zapata vs Profundidad de Desplante\nFLOTACIÓN Cu y Pb',
                  fontsize=14, fontweight='bold', pad=20)
     ax.grid(True, alpha=0.3, linestyle='--')
     ax.legend(fontsize=10, loc='best')
@@ -115,7 +115,7 @@ def crear_documento_word(datos, grafico_file):
     titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     # Subtítulo
-    subtitulo = doc.add_heading('EDIFICIO DE MOLIENDA - Proyecto Porvenir', 2)
+    subtitulo = doc.add_heading('FLOTACIÓN Cu y Pb - Proyecto Porvenir', 2)
     subtitulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     doc.add_paragraph()
@@ -124,11 +124,11 @@ def crear_documento_word(datos, grafico_file):
     doc.add_heading('1. INFORMACIÓN DEL PROYECTO', 1)
     p = doc.add_paragraph()
     p.add_run('Estructura: ').bold = True
-    p.add_run('EDIFICIO DE MOLIENDA\n')
+    p.add_run('FLOTACIÓN Cu y Pb\n')
     p.add_run('Zapata: ').bold = True
-    p.add_run('6.0m × 8.0m × 1.0m\n')
+    p.add_run('4.2m × 4.8m × 0.7m\n')
     p.add_run('Carga de columna: ').bold = True
-    p.add_run('6,288 kN (total)\n')
+    p.add_run('2,419.2 kN (total)\n')
     p.add_run('Modelo: ').bold = True
     p.add_run('Análisis FEM 3D con simetría (1/4)\n')
     p.add_run('Software: ').bold = True
@@ -213,7 +213,7 @@ def crear_documento_word(datos, grafico_file):
     p = doc.add_paragraph()
     p.add_run('4.1 Comportamiento General\n').bold = True
     p = doc.add_paragraph(
-        f'El análisis comparativo de diferentes profundidades de desplante (Df) para el EDIFICIO DE MOLIENDA '
+        f'El análisis comparativo de diferentes profundidades de desplante (Df) para FLOTACIÓN Cu y Pb '
         f'muestra una tendencia clara: a mayor profundidad de desplante, menor es el asentamiento por carga incremental. '
         f'El rango de asentamientos va desde {asent_max:.2f} mm (Df=1.5m) hasta {asent_min:.2f} mm (Df={df_optimo}m), '
         f'representando una reducción de {reduccion_total:.1f}% al aumentar la profundidad de desplante.'
