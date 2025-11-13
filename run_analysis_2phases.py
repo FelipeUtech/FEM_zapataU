@@ -35,6 +35,85 @@ import config
 import utils
 
 # ===================================================================================
+# FUNCIONES AUXILIARES
+# ===================================================================================
+
+def extraer_tensiones_elementos(total_elements):
+    """
+    Extrae tensiones de todos los elementos tetraédricos.
+
+    Para material ElasticIsotropic con FourNodeTetrahedron, eleResponse('stress')
+    devuelve el tensor de tensiones con 6 componentes:
+    [σxx, σyy, σzz, τxy, τyz, τzx]
+
+    Args:
+        total_elements: Número total de elementos en el modelo
+
+    Returns:
+        dict con arrays numpy:
+            - 'sigma_xx': Tensión normal en dirección X (kPa)
+            - 'sigma_yy': Tensión normal en dirección Y (kPa)
+            - 'sigma_zz': Tensión normal en dirección Z (vertical) (kPa)
+            - 'tau_xy': Tensión cortante XY (kPa)
+            - 'tau_yz': Tensión cortante YZ (kPa)
+            - 'tau_zx': Tensión cortante ZX (kPa)
+    """
+    sigma_xx = np.zeros(total_elements)
+    sigma_yy = np.zeros(total_elements)
+    sigma_zz = np.zeros(total_elements)
+    tau_xy = np.zeros(total_elements)
+    tau_yz = np.zeros(total_elements)
+    tau_zx = np.zeros(total_elements)
+
+    for ele_id in range(1, total_elements + 1):
+        try:
+            # Intentar diferentes métodos para obtener tensiones
+            stress = None
+
+            # Método 1: eleResponse con 'stress'
+            try:
+                stress = ops.eleResponse(ele_id, 'stress')
+            except:
+                pass
+
+            # Método 2: eleResponse con 'stresses'
+            if stress is None or len(stress) == 0:
+                try:
+                    stress = ops.eleResponse(ele_id, 'stresses')
+                except:
+                    pass
+
+            # Método 3: eleResponse con 'material', 'stress'
+            if stress is None or len(stress) == 0:
+                try:
+                    stress = ops.eleResponse(ele_id, 'material', 'stress')
+                except:
+                    pass
+
+            if stress and len(stress) >= 6:
+                # Convertir de Pa a kPa (OpenSees usa Pa internamente)
+                sigma_xx[ele_id - 1] = stress[0] / 1000.0
+                sigma_yy[ele_id - 1] = stress[1] / 1000.0
+                sigma_zz[ele_id - 1] = stress[2] / 1000.0
+                tau_xy[ele_id - 1] = stress[3] / 1000.0
+                tau_yz[ele_id - 1] = stress[4] / 1000.0
+                tau_zx[ele_id - 1] = stress[5] / 1000.0
+        except Exception as e:
+            # Debugging: Imprimir el primer error
+            if ele_id == 1:
+                print(f"  Advertencia: No se pudieron extraer tensiones del elemento 1: {e}")
+            pass
+
+    return {
+        'sigma_xx': sigma_xx,
+        'sigma_yy': sigma_yy,
+        'sigma_zz': sigma_zz,
+        'tau_xy': tau_xy,
+        'tau_yz': tau_yz,
+        'tau_zx': tau_zx
+    }
+
+# ===================================================================================
 # FUNCIÓN PRINCIPAL
 # ===================================================================================
 
@@ -111,12 +190,12 @@ def main():
     print("PASO 3: GENERANDO MALLA CON GMSH")
     print("="*80)
 
-    print("Ejecutando generate_mesh_quarter.py...")
+    print("Ejecutando generate_mesh_quarter_modificado.py...")
     print("(Esto generará una malla tetraédrica con Gmsh)")
 
     import subprocess
     result = subprocess.run(
-        ['python3', 'generate_mesh_quarter.py'],
+        ['python3', 'generate_mesh_quarter_modificado.py'],
         capture_output=True,
         text=True,
         timeout=300  # 5 minutos máximo
@@ -239,15 +318,15 @@ def main():
     # Identificar nodos en el tope de la zapata
     Df = zapata['Df']
     h_zapata = zapata['h']
-    z_tope_zapata = -Df  # Tope de zapata (fondo de excavación)
-    z_base_zapata = -Df - h_zapata  # Base de zapata
+    z_tope_zapata = -Df + h_zapata  # Tope de zapata (superior)
+    z_base_zapata = -Df  # Base de zapata (fondo de excavación)
 
     # Límites de la zapata en planta (modelo 1/4)
     # Para modelo 1/4, la zapata empieza en el origen (0, 0)
     x_min_zapata = 0.0
-    x_max_zapata = B_modelo / 2
+    x_max_zapata = B_modelo  # Ya es B/2, no dividir otra vez
     y_min_zapata = 0.0
-    y_max_zapata = L_modelo / 2
+    y_max_zapata = L_modelo  # Ya es L/2, no dividir otra vez
 
     zapata_nodes = []
     for nid, coords in node_coords.items():
@@ -420,12 +499,12 @@ def main():
             estrato_idx = mat_id - 1
             rho = estratos_suelo[estrato_idx]['rho']
 
-        # Fuerza gravitacional total del elemento (en kN)
-        weight = vol * rho * g / 1000.0  # kN
+        # Fuerza gravitacional total del elemento (en N)
+        weight = vol * rho * g  # N (Newtons)
         total_weight += weight
 
         # Distribuir fuerza en 4 nodos (1/4 cada uno)
-        force_per_node = -weight / 4.0  # Negativo = hacia abajo en Z
+        force_per_node = -weight / 4.0  # Negativo = hacia abajo en Z, en N
 
         node_forces[n1][2] += force_per_node
         node_forces[n2][2] += force_per_node
@@ -441,7 +520,7 @@ def main():
             ops.load(nid, float(force[0]), float(force[1]), float(force[2]))
 
     print(f"✓ Fuerzas gravitacionales aplicadas")
-    print(f"  Peso total del modelo: {total_weight:.2f} kN")
+    print(f"  Peso total del modelo: {total_weight/1000:.2f} kN ({total_weight:.0f} N)")
     print(f"  Nodos con carga gravitacional: {len([f for f in node_forces.values() if abs(f[2]) > 1e-10])}")
 
     # -------------------------
@@ -502,6 +581,13 @@ def main():
     df_fase1.to_csv(csv_fase1, index=False)
     print(f"✓ Resultados Fase 1 guardados: {csv_fase1}")
 
+    # Extraer tensiones Fase 1
+    print("\nExtrayendo tensiones FASE 1 - Gravedad...")
+    tensiones_fase1 = extraer_tensiones_elementos(total_elements)
+    print(f"✓ Tensiones extraídas para {total_elements} elementos")
+    print(f"  σv (vertical) - Rango: [{tensiones_fase1['sigma_zz'].min():.2f}, {tensiones_fase1['sigma_zz'].max():.2f}] kPa")
+    print(f"  σv (vertical) - Media: {tensiones_fase1['sigma_zz'].mean():.2f} kPa")
+
     # -------------------------
     # 5b. FASE 2 - CARGA INCREMENTAL
     # -------------------------
@@ -527,28 +613,124 @@ def main():
     # La carga de columna es adicional (no incluir peso propio que ya está en gravedad)
     carga_total = P_column
 
-    # Distribuir carga entre nodos del tope de zapata
-    if len(zapata_nodes) == 0:
-        print("⚠️  Advertencia: No se encontraron nodos en el tope de la zapata")
-        print("    Aplicando carga en nodos de superficie dentro de área de zapata")
+    # -------------------------
+    # IDENTIFICAR NODOS DE INTERFAZ ZAPATA-SUELO
+    # -------------------------
+    print("\nIdentificando nodos de interfaz zapata-suelo...")
 
-        # Buscar nodos de superficie en área de zapata
-        for nid in surface_nodes:
-            coords = node_coords[nid]
-            x, y = coords[0], coords[1]
-            if (x_min_zapata <= x <= x_max_zapata and
-                y_min_zapata <= y <= y_max_zapata):
-                zapata_nodes.append(nid)
+    # Crear sets para almacenar nodos de concreto y de suelo
+    nodos_concreto = set()
+    nodos_suelo = set()
+
+    # Recorrer elementos para clasificar nodos
+    element_id = 1
+    cell_idx = 0
+
+    while cell_idx < len(cells):
+        n_points = cells[cell_idx]
+        if n_points != 4:
+            cell_idx += n_points + 1
+            continue
+
+        # Índices de nodos en PyVista
+        idx1 = int(cells[cell_idx + 1])
+        idx2 = int(cells[cell_idx + 2])
+        idx3 = int(cells[cell_idx + 3])
+        idx4 = int(cells[cell_idx + 4])
+
+        # IDs de nodos en OpenSees
+        n1 = node_mapping[idx1]
+        n2 = node_mapping[idx2]
+        n3 = node_mapping[idx3]
+        n4 = node_mapping[idx4]
+
+        # Material del elemento
+        mat_id = int(material_ids[element_id - 1])
+
+        # Clasificar nodos según material del elemento
+        if mat_id == mat_tag_zapata:
+            nodos_concreto.update([n1, n2, n3, n4])
+        else:
+            nodos_suelo.update([n1, n2, n3, n4])
+
+        element_id += 1
+        cell_idx += n_points + 1
+
+    # Nodos de interfaz son los que están tanto en concreto como en suelo
+    nodos_interfaz = nodos_concreto.intersection(nodos_suelo)
+
+    # Filtrar nodos del tope de zapata para excluir nodos de interfaz
+    zapata_nodes_original = zapata_nodes.copy()
+    zapata_nodes_interior = [nid for nid in zapata_nodes if nid not in nodos_interfaz]
+
+    print(f"✓ Total nodos en tope de zapata: {len(zapata_nodes_original)}")
+    print(f"  Nodos en interfaz zapata-suelo: {len([n for n in zapata_nodes_original if n in nodos_interfaz])}")
+    print(f"  Nodos interiores (sin interfaz): {len(zapata_nodes_interior)}")
+
+    # -------------------------
+    # EXCLUIR NODOS DE LOS BORDES DEL TOPE
+    # -------------------------
+    print("\nFiltrando nodos de bordes del tope...")
+
+    # Tolerancia para identificar nodos en los bordes
+    tol_borde = 0.05  # metros
+
+    # Límites del área de zapata (genérico para modelo 1/4 o completo)
+    # B_modelo y L_modelo ya están definidos arriba
+    x_borde_min = 0.0
+    x_borde_max = B_modelo
+    y_borde_min = 0.0
+    y_borde_max = L_modelo
+
+    # Filtrar nodos del tope excluyendo los que están en los bordes
+    zapata_nodes_centro = []
+    nodos_en_borde = 0
+
+    for nid in zapata_nodes_interior:
+        coords = node_coords[nid]
+        x, y = coords[0], coords[1]
+
+        # Verificar si el nodo está en algún borde
+        en_borde_x0 = abs(x - x_borde_min) < tol_borde
+        en_borde_xmax = abs(x - x_borde_max) < tol_borde
+        en_borde_y0 = abs(y - y_borde_min) < tol_borde
+        en_borde_ymax = abs(y - y_borde_max) < tol_borde
+
+        en_algun_borde = en_borde_x0 or en_borde_xmax or en_borde_y0 or en_borde_ymax
+
+        if not en_algun_borde:
+            zapata_nodes_centro.append(nid)
+        else:
+            nodos_en_borde += 1
+
+    print(f"  Total nodos en tope: {len(zapata_nodes_interior)}")
+    print(f"  Nodos en bordes (X=0, X={B_modelo:.2f}, Y=0, Y={L_modelo:.2f}): {nodos_en_borde}")
+    print(f"  Nodos en centro (sin bordes): {len(zapata_nodes_centro)}")
+
+    # Usar solo nodos del centro para aplicar carga
+    zapata_nodes = zapata_nodes_centro
+
+    # -------------------------
+    # DISTRIBUIR CARGA EN NODOS INTERIORES
+    # -------------------------
+    # Distribuir carga entre nodos del centro del tope de zapata
+    if len(zapata_nodes) == 0:
+        print("⚠️  Advertencia: No se encontraron nodos en el centro del tope de la zapata")
+        print("    Usando todos los nodos del tope (incluyendo bordes)")
+        zapata_nodes = zapata_nodes_original
+
+    print(f"\n✓ Aplicando carga en {len(zapata_nodes)} nodos del tope de zapata")
 
     if len(zapata_nodes) > 0:
-        carga_por_nodo = -carga_total / len(zapata_nodes)  # Negativa (hacia abajo)
+        carga_por_nodo_kN = -carga_total / len(zapata_nodes)  # Negativa (hacia abajo), en kN
+        carga_por_nodo_N = carga_por_nodo_kN * 1000  # Convertir a N para OpenSees
 
         for nid in zapata_nodes:
-            ops.load(nid, 0.0, 0.0, carga_por_nodo)
+            ops.load(nid, 0.0, 0.0, carga_por_nodo_N)
 
         print(f"✓ Carga incremental aplicada: {carga_total:.2f} kN")
         print(f"  Nodos cargados: {len(zapata_nodes)}")
-        print(f"  Carga por nodo: {carga_por_nodo:.4f} kN")
+        print(f"  Carga por nodo: {carga_por_nodo_kN:.4f} kN ({carga_por_nodo_N:.2f} N)")
     else:
         print("❌ Error: No se pudieron identificar nodos para aplicar cargas")
         sys.exit(1)
@@ -613,6 +795,27 @@ def main():
     csv_fase2 = "settlements_fase2_incremental.csv"
     df_fase2.to_csv(csv_fase2, index=False)
     print(f"✓ Resultados Fase 2 guardados: {csv_fase2}")
+
+    # Extraer tensiones TOTALES Fase 2 (gravedad + carga)
+    print("\nExtrayendo tensiones FASE 2 - Carga incremental (total)...")
+    tensiones_total = extraer_tensiones_elementos(total_elements)
+    print(f"✓ Tensiones totales extraídas para {total_elements} elementos")
+    print(f"  σv (vertical) total - Rango: [{tensiones_total['sigma_zz'].min():.2f}, {tensiones_total['sigma_zz'].max():.2f}] kPa")
+    print(f"  σv (vertical) total - Media: {tensiones_total['sigma_zz'].mean():.2f} kPa")
+
+    # Calcular tensiones solo por carga (diferencial: Fase 2 - Fase 1)
+    print("\nCalculando tensiones incrementales por carga...")
+    tensiones_fase2 = {
+        'sigma_xx': tensiones_total['sigma_xx'] - tensiones_fase1['sigma_xx'],
+        'sigma_yy': tensiones_total['sigma_yy'] - tensiones_fase1['sigma_yy'],
+        'sigma_zz': tensiones_total['sigma_zz'] - tensiones_fase1['sigma_zz'],
+        'tau_xy': tensiones_total['tau_xy'] - tensiones_fase1['tau_xy'],
+        'tau_yz': tensiones_total['tau_yz'] - tensiones_fase1['tau_yz'],
+        'tau_zx': tensiones_total['tau_zx'] - tensiones_fase1['tau_zx']
+    }
+    print(f"✓ Tensiones incrementales calculadas")
+    print(f"  Δσv (vertical) - Rango: [{tensiones_fase2['sigma_zz'].min():.2f}, {tensiones_fase2['sigma_zz'].max():.2f}] kPa")
+    print(f"  Δσv (vertical) - Media: {tensiones_fase2['sigma_zz'].mean():.2f} kPa")
 
     # -------------------------
     # 7c. COMBINAR RESULTADOS
@@ -737,6 +940,21 @@ def main():
         result_grid = pv.UnstructuredGrid(new_cells, celltypes, unique_points)
         result_grid.cell_data['dominio'] = np.array(new_material_ids)
 
+        # Agregar tensiones FASE 1 (Gravedad) como cell_data
+        result_grid.cell_data['Sigma_v_gravedad_kPa'] = tensiones_fase1['sigma_zz']
+        result_grid.cell_data['Sigma_xx_gravedad_kPa'] = tensiones_fase1['sigma_xx']
+        result_grid.cell_data['Sigma_yy_gravedad_kPa'] = tensiones_fase1['sigma_yy']
+
+        # Agregar tensiones FASE 2 (Incrementales por carga) como cell_data
+        result_grid.cell_data['Sigma_v_carga_kPa'] = tensiones_fase2['sigma_zz']
+        result_grid.cell_data['Sigma_xx_carga_kPa'] = tensiones_fase2['sigma_xx']
+        result_grid.cell_data['Sigma_yy_carga_kPa'] = tensiones_fase2['sigma_yy']
+
+        # Agregar tensiones TOTALES (Gravedad + Carga) como cell_data
+        result_grid.cell_data['Sigma_v_total_kPa'] = tensiones_total['sigma_zz']
+        result_grid.cell_data['Sigma_xx_total_kPa'] = tensiones_total['sigma_xx']
+        result_grid.cell_data['Sigma_yy_total_kPa'] = tensiones_total['sigma_yy']
+
         # Extraer desplazamientos TOTALES de todos los nodos desde OpenSees
         displacements = np.zeros((len(node_coords), 3))
         settlement_grav_array = np.zeros(len(node_coords))
@@ -771,6 +989,10 @@ def main():
         result_grid.save(vtu_file)
         print(f"✓ Archivo VTU generado: {vtu_file}")
         print(f"  Nodos: {len(unique_points)}, Elementos: {len(new_material_ids)}")
+        print(f"  Campos disponibles:")
+        print(f"    • Desplazamientos (point_data): gravedad, carga, total")
+        print(f"    • Tensiones σv (cell_data): gravedad, carga, total")
+        print(f"    • Tensiones σxx, σyy (cell_data): gravedad, carga, total")
         print(f"  Para visualizar: paraview {vtu_file}")
     except Exception as e:
         print(f"⚠️  Error al generar VTU: {e}")
@@ -871,7 +1093,9 @@ def main():
     if salida['guardar_csv']:
         print(f"  • {salida['csv_surface']} (superficie)")
     print(f"\n  Visualización:")
-    print(f"  • resultados_2phases.vtu (ParaView - con campos por fase)")
+    print(f"  • resultados_2phases.vtu (ParaView)")
+    print(f"    - Desplazamientos (point_data): gravedad, carga, total")
+    print(f"    - Tensiones σv, σxx, σyy (cell_data): gravedad, carga, total")
     if salida['generar_reporte']:
         print(f"\n  Reportes:")
         print(f"  • analysis_summary_2phases.txt")

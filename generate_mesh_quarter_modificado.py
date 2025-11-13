@@ -132,6 +132,32 @@ for i, soil_vol in enumerate(soil_volumes):
 
 gmsh.model.occ.synchronize()
 
+# CRÍTICO: Usar fragment para forzar interfaces compartidas entre zapata y suelo
+print("\nFragmentando geometría para crear interfaces compartidas...")
+all_volumes = [(3, s['tag']) for s in soil_tags_cut] + [(3, foot)]
+
+# Fragment une todos los volúmenes y crea nodos compartidos en las interfaces
+fragmented, _ = gmsh.model.occ.fragment(all_volumes, [])
+print(f"  ✓ Fragmentado: {len(all_volumes)} volúmenes → {len(fragmented)} piezas")
+
+# Reasignar tags después de fragment
+# Los primeros len(soil_tags_cut) son suelo, el último es zapata
+soil_tags_fragmented = []
+for i, soil_data in enumerate(soil_tags_cut):
+    if i < len(fragmented) - 1:
+        soil_tags_fragmented.append({
+            'tag': fragmented[i][1],
+            'nombre': soil_data['nombre']
+        })
+
+foot_tag = fragmented[-1][1]  # Último elemento es la zapata
+
+# Actualizar soil_tags_cut con tags fragmentados
+soil_tags_cut = soil_tags_fragmented
+
+gmsh.model.occ.synchronize()
+print("  ✓ Interfaces compartidas creadas")
+
 # ---------------------------------
 # Grupos físicos
 # ---------------------------------
@@ -146,8 +172,8 @@ for i, soil_data in enumerate(soil_tags_cut, 1):
     phys_groups[phys_name] = phys_group
     print(f"  ✓ Grupo físico '{phys_name}': {soil_data['nombre']}")
 
-# Grupo para zapata
-phys_foot = gmsh.model.addPhysicalGroup(3, [foot])
+# Grupo para zapata (usar foot_tag del fragment)
+phys_foot = gmsh.model.addPhysicalGroup(3, [foot_tag])
 gmsh.model.setPhysicalName(3, phys_foot, "FOOTING")
 phys_groups['FOOTING'] = phys_foot
 print(f"  ✓ Grupo físico 'FOOTING': Zapata de concreto")
@@ -173,26 +199,68 @@ print(f"  Tamaño elemento mínimo (zapata): {lc_min:.3f}m")
 print(f"  Tamaño elemento máximo (fronteras): {lc_max:.3f}m")
 
 def size_callback(dim, tag, x, y, z, lc):
-    """Calcula tamaño de elemento según distancia a zapata."""
-    dx = x - x_center
-    dy = y - y_center
-    dz = z - z_center
-    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+    """
+    Calcula tamaño de elemento con refinamiento gradual:
+    - Muy fino en zapata y zona del bulbo (hasta -9m)
+    - Elementos grandes después de -9m
+    - Transición gradual en horizontal
+    """
+    # Verificar si está dentro o cerca de la zapata
+    dentro_x = (x >= x0) and (x <= x0 + foot_width)
+    dentro_y = (y >= y0) and (y <= y0 + foot_length)
+    dentro_z = (z >= z_base) and (z <= z_top)
 
-    # Refinamiento gradual desde la zapata
-    if dist < 0.5:
+    # Si está dentro de la zapata, tamaño constante muy fino
+    if dentro_x and dentro_y and dentro_z:
         return lc_min
-    elif dist < 2.0:
-        # Transición suave
-        t = (dist - 0.5) / 1.5
-        return lc_min + (lc_max - lc_min) * t
+
+    # Calcular distancia horizontal mínima a la zapata
+    dx = max(0, max(x0 - x, x - (x0 + foot_width)))
+    dy = max(0, max(y0 - y, y - (y0 + foot_length)))
+    dist_horizontal = np.sqrt(dx**2 + dy**2)
+
+    # Profundidad límite para refinamiento: -3×max(B,L) = -9m
+    z_refine_limit = -9.0
+    profundidad = abs(z)  # z es negativo hacia abajo
+
+    # Factor de refinamiento vertical basado en profundidad
+    if profundidad <= 9.0:  # Zona del bulbo (0 a -9m): REFINADO
+        # Crecimiento gradual hasta -9m
+        factor_vertical = 1.0 + 0.8 * (profundidad / 9.0)  # Crece 80% hasta -9m
+        lc_vertical = lc_min * factor_vertical
+    else:  # Más profundo que -9m: elementos GRANDES
+        # Elementos grandes para ahorrar costo computacional
+        lc_vertical = lc_max
+
+    # Factor de refinamiento horizontal desde zapata
+    if dist_horizontal < 0.5:
+        lc_horizontal = lc_min
+    elif dist_horizontal < 2.0:
+        # Transición suave horizontal
+        t = (dist_horizontal - 0.5) / 1.5
+        lc_horizontal = lc_min + (lc_max - lc_min) * t
     else:
-        return lc_max
+        lc_horizontal = lc_max
+
+    # Tomar el máximo de ambos factores (más conservador)
+    size_final = min(max(lc_vertical, lc_horizontal), lc_max)
+
+    return size_final
 
 gmsh.model.mesh.setSizeCallback(size_callback)
 
 print("\nGenerando malla 3D...")
 gmsh.model.mesh.generate(3)
+
+# CRÍTICO: Eliminar nodos duplicados con tolerancia para asegurar interfaz única
+print("Eliminando nodos duplicados en interfaz...")
+gmsh.model.mesh.removeDuplicateNodes()
+print("✓ Nodos duplicados eliminados")
+
+# Recombinar y optimizar
+print("Optimizando malla...")
+gmsh.model.mesh.optimize("Netgen")
+print("✓ Malla optimizada")
 
 # Guardar archivo .msh
 msh_file = "mallas/zapata_3D_cuarto.msh"

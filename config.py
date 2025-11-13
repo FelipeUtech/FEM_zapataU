@@ -3,36 +3,42 @@
 Archivo de configuración para la generación de mallas de zapatas.
 """
 
-# Parámetros de la zapata
+# Nombre de la estructura
+NOMBRE_ESTRUCTURA = "EDIFICIO DE MOLIENDA"
+
+# Parámetros de la zapata - EDIFICIO DE MOLIENDA
 ZAPATA = {
-    'B': 1.0,      # Ancho (m)
-    'L': 1.0,      # Largo (m)
-    'h': 0.4,      # Altura/espesor (m)
-    'Df': 1.2,     # Profundidad de desplante (m)
+    'B': 6.0,      # Ancho (m)
+    'L': 8.0,      # Largo (m)
+    'h': 1.0,      # Altura/espesor (m)
+    'Df': 4.0,     # Profundidad de desplante (m)
 }
 
-# Estratos de suelo (de arriba hacia abajo)
+# Estratos de suelo - EDIFICIO DE MOLIENDA (de arriba hacia abajo)
 ESTRATOS_SUELO = [
     {
-        'nombre': 'Suelo Superior',
-        'espesor': 10.0,  # metros
-        'E': 50e6,        # Módulo de Young (Pa)
-        'nu': 0.3,        # Coeficiente de Poisson
-        'rho': 2000,      # Densidad (kg/m³)
+        'nombre': 'Estrato 1',
+        'espesor': 6.45,  # metros (profundidad: 0 a 6.45 m)
+        'E': 5e6,         # Módulo de Young (Pa) - 5 MPa
+        'nu': 0.35,       # Coeficiente de Poisson
+        'rho': 1835,      # Densidad (kg/m³) - convertido de 18 kN/m³
+        'color': [0.9, 0.85, 0.7],  # Color claro (RGB)
     },
     {
-        'nombre': 'Suelo Intermedio',
-        'espesor': 7.0,
-        'E': 80e6,
-        'nu': 0.3,
-        'rho': 2100,
+        'nombre': 'Estrato 2',
+        'espesor': 2.25,  # metros (profundidad: 6.45 a 8.7 m)
+        'E': 12e6,        # 12 MPa
+        'nu': 0.30,       # Coeficiente de Poisson
+        'rho': 1937,      # Densidad (kg/m³) - convertido de 19 kN/m³
+        'color': [0.7, 0.6, 0.4],   # Color medio
     },
     {
-        'nombre': 'Suelo Profundo',
-        'espesor': 3.0,
-        'E': 100e6,
-        'nu': 0.3,
-        'rho': 2200,
+        'nombre': 'Estrato 3',
+        'espesor': 11.3,  # metros (profundidad: 8.7 a 20.0 m)
+        'E': 50e6,        # 50 MPa
+        'nu': 0.20,       # Coeficiente de Poisson
+        'rho': 2039,      # Densidad (kg/m³) - convertido de 20 kN/m³
+        'color': [0.5, 0.4, 0.3],   # Color oscuro
     },
 ]
 
@@ -43,10 +49,49 @@ PROPIEDADES_ZAPATA = {
     'rho': 2400,    # kg/m³
 }
 
+# Alias para compatibilidad con run_analysis_2phases.py
+MATERIAL_ZAPATA = PROPIEDADES_ZAPATA
+MATERIAL_SUELO = ESTRATOS_SUELO  # Lista de estratos
+
+# Configuración del dominio
+DOMINIO = {
+    'usar_cuarto_modelo': True,  # Usar modelo 1/4 con simetría
+    'factor_horizontal': 5,      # Factor para dimensiones horizontales (ya aplicado en obtener_dimensiones_dominio)
+    'profundidad': sum(e['espesor'] for e in ESTRATOS_SUELO),  # Profundidad total (suma de estratos)
+}
+
+# Cargas aplicadas - EDIFICIO DE MOLIENDA
+CARGAS = {
+    'P_column': 6288.0,  # Carga de columna en kN (presión: 131 kPa, se divide automáticamente para modelo 1/4)
+}
+
+# Configuración del análisis
+ANALISIS = {
+    'solver': 'BandGeneral',
+    'numberer': 'RCM',
+    'constraints': 'Plain',
+    'algorithm': 'Linear',
+    'tipo': 'Static',
+}
+
+# Criterios de diseño
+CRITERIOS = {
+    'asentamiento_maximo_admisible': 25.0,  # mm
+    'asentamiento_diferencial_admisible': 0.002,  # Relación diferencial/máximo
+}
+
+# Configuración de salida
+SALIDA = {
+    'guardar_csv': True,
+    'csv_surface': 'settlements_surface.csv',
+    'generar_reporte': True,
+    'generar_graficas': False,  # Requiere visualize_zapata.py
+}
+
 # Parámetros de malla
 MALLA = {
     'graded': {
-        'dx_min': 0.05,   # Tamaño mínimo cerca de la zapata (m)
+        'dx_min': min(ZAPATA['B'], ZAPATA['L']) / 10,   # Tamaño mínimo cerca de la zapata (m)
         'dx_max': 2.0,    # Tamaño máximo en fronteras (m)
     }
 }
@@ -54,33 +99,102 @@ MALLA = {
 def obtener_dimensiones_dominio():
     """
     Calcula las dimensiones del dominio completo.
-    Regla típica: dominio debe ser al menos 5 veces el ancho de la zapata
+    Regla: dominio 5*B en X y 5*L en Y
     """
     B = ZAPATA['B']
     L = ZAPATA['L']
-    
+
     # Dimensiones del dominio (valores completos)
-    Lx = max(9.0, 5 * B)  # Al menos 9m o 5B
-    Ly = max(9.0, 5 * L)  # Al menos 9m o 5L
-    
+    Lx = 5 * B
+    Ly = 5 * L
+
     # Profundidad total
     Lz = sum(e['espesor'] for e in ESTRATOS_SUELO)
-    
+
     return {
         'Lx': Lx,
         'Ly': Ly,
         'Lz': Lz
     }
 
+def validar_configuracion():
+    """
+    Valida la configuración del modelo.
+    Retorna True si todo está OK, False si hay errores.
+    """
+    errores = []
+
+    # Validar zapata
+    if ZAPATA['B'] <= 0 or ZAPATA['L'] <= 0 or ZAPATA['h'] <= 0:
+        errores.append("Dimensiones de zapata deben ser positivas")
+
+    if ZAPATA['Df'] <= 0:
+        errores.append("Profundidad de desplante debe ser positiva")
+
+    # Validar estratos
+    if len(ESTRATOS_SUELO) == 0:
+        errores.append("Debe haber al menos un estrato de suelo")
+
+    for i, estrato in enumerate(ESTRATOS_SUELO, 1):
+        if estrato['espesor'] <= 0:
+            errores.append(f"Estrato {i}: espesor debe ser positivo")
+        if estrato['E'] <= 0:
+            errores.append(f"Estrato {i}: módulo de Young debe ser positivo")
+        if not (0 <= estrato['nu'] < 0.5):
+            errores.append(f"Estrato {i}: coeficiente de Poisson debe estar entre 0 y 0.5")
+
+    # Validar cargas
+    if CARGAS['P_column'] < 0:
+        errores.append("Carga de columna no puede ser negativa")
+
+    if errores:
+        print("\n❌ Errores de validación:")
+        for error in errores:
+            print(f"  • {error}")
+        return False
+
+    return True
+
+def imprimir_resumen():
+    """Imprime un resumen de la configuración."""
+    print("\n" + "="*70)
+    print("CONFIGURACIÓN DEL MODELO")
+    print("="*70)
+
+    print("\n📐 ZAPATA:")
+    print(f"  Dimensiones: {ZAPATA['B']}m × {ZAPATA['L']}m × {ZAPATA['h']}m")
+    print(f"  Profundidad de desplante: {ZAPATA['Df']}m")
+
+    dims = obtener_dimensiones_dominio()
+    print(f"\n🌍 DOMINIO:")
+    print(f"  Dimensiones: {dims['Lx']}m × {dims['Ly']}m × {dims['Lz']}m")
+    print(f"  Modelo: {'Cuarto (1/4)' if DOMINIO['usar_cuarto_modelo'] else 'Completo'}")
+
+    print(f"\n🏔️  ESTRATOS DE SUELO:")
+    for i, est in enumerate(ESTRATOS_SUELO, 1):
+        print(f"  {i}. {est['nombre']}: {est['espesor']}m, E={est['E']/1e6:.0f} MPa")
+
+    print(f"\n🏗️  MATERIAL ZAPATA:")
+    print(f"  Concreto: E={PROPIEDADES_ZAPATA['E']/1e9:.0f} GPa, ν={PROPIEDADES_ZAPATA['nu']}")
+
+    print(f"\n⚡ CARGAS:")
+    print(f"  Carga de columna: {CARGAS['P_column']:.1f} kN")
+
+    print(f"\n🔧 MALLA:")
+    print(f"  dx_min: {MALLA['graded']['dx_min']:.3f}m")
+    print(f"  dx_max: {MALLA['graded']['dx_max']:.3f}m")
+
+    print("="*70)
+
 if __name__ == "__main__":
     # Test de configuración
-    print("Configuración de la malla:")
-    print(f"  Zapata: {ZAPATA['B']}m × {ZAPATA['L']}m × {ZAPATA['h']}m")
-    print(f"  Profundidad: {ZAPATA['Df']}m")
-    
-    dims = obtener_dimensiones_dominio()
-    print(f"  Dominio: {dims['Lx']}m × {dims['Ly']}m × {dims['Lz']}m")
-    print(f"  Estratos: {len(ESTRATOS_SUELO)} capas")
-    
-    for i, est in enumerate(ESTRATOS_SUELO, 1):
-        print(f"    {i}. {est['nombre']}: {est['espesor']}m")
+    imprimir_resumen()
+
+    print("\n" + "="*70)
+    print("VALIDACIÓN")
+    print("="*70)
+    if validar_configuracion():
+        print("\n✓ Configuración válida")
+    else:
+        print("\n❌ Hay errores en la configuración")
+    print("="*70)
