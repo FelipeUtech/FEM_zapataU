@@ -439,9 +439,23 @@ def crear_vista_desplazamientos_con_bordes(mesh, campo, output_file, titulo="Des
     plotter.add_light(pv.Light(position=(-10, -5, 5), intensity=0.3))
     plotter.add_light(pv.Light(intensity=0.3, light_type='headlight'))
 
+    # Convertir cell_data a point_data si es necesario
+    if 'dominio' not in mesh.point_data and 'dominio' in mesh.cell_data:
+        mesh = mesh.cell_data_to_point_data()
+
+    # Determinar ID de zapata (valor máximo en dominio)
+    if 'dominio' in mesh.point_data:
+        dominio_values = mesh.point_data['dominio']
+        zapata_id = int(max(dominio_values))
+        max_suelo_id = zapata_id - 1
+    else:
+        # Valores por defecto si no hay dominio
+        zapata_id = 4
+        max_suelo_id = 3
+
     # Separar suelo y zapata
-    suelo_mesh = mesh.threshold([1, 3], scalars='dominio')
-    zapata_mesh = mesh.threshold([4, 4], scalars='dominio')
+    suelo_mesh = mesh.threshold([1, max_suelo_id], scalars='dominio')
+    zapata_mesh = mesh.threshold([zapata_id, zapata_id], scalars='dominio')
 
     # Agregar suelo con desplazamientos
     plotter.add_mesh(
@@ -471,14 +485,15 @@ def crear_vista_desplazamientos_con_bordes(mesh, campo, output_file, titulo="Des
         }
     )
 
-    # Agregar SOLO los bordes de la zapata en NEGRO
-    plotter.add_mesh(
-        zapata_mesh,
-        style='wireframe',
-        color='black',
-        line_width=2.5,
-        opacity=1.0
-    )
+    # Agregar SOLO los bordes de la zapata en NEGRO (si existe)
+    if zapata_mesh.n_points > 0:
+        plotter.add_mesh(
+            zapata_mesh,
+            style='wireframe',
+            color='black',
+            line_width=2.5,
+            opacity=1.0
+        )
 
     # Configurar cámara
     configurar_camara_isometrica(plotter, mesh)
@@ -548,15 +563,26 @@ def crear_vista_bulbo_sin_zapata(mesh, campo, output_file, titulo="Bulbo de Pres
     plotter.add_light(pv.Light(position=(-10, -5, 5), intensity=0.3))
     plotter.add_light(pv.Light(intensity=0.3, light_type='headlight'))
 
-    # Separar zapata y suelo usando threshold
-    # Suelo: dominios 1, 2, 3
-    # Zapata: dominio 4
+    # Convertir cell_data a point_data si es necesario
+    if 'dominio' not in mesh.point_data and 'dominio' in mesh.cell_data:
+        mesh = mesh.cell_data_to_point_data()
 
-    # Extraer solo el suelo (dominios 1, 2, 3)
-    suelo_mesh = mesh.threshold([1, 3], scalars='dominio')
+    # Determinar ID de zapata (valor máximo en dominio)
+    if 'dominio' in mesh.point_data:
+        dominio_values = mesh.point_data['dominio']
+        zapata_id = int(max(dominio_values))
+        max_suelo_id = zapata_id - 1
+    else:
+        # Valores por defecto si no hay dominio
+        zapata_id = 4
+        max_suelo_id = 3
+
+    # Separar zapata y suelo usando threshold
+    # Extraer solo el suelo
+    suelo_mesh = mesh.threshold([1, max_suelo_id], scalars='dominio')
 
     # Extraer solo la zapata para bordes
-    zapata_mesh = mesh.threshold([4, 4], scalars='dominio')
+    zapata_mesh = mesh.threshold([zapata_id, zapata_id], scalars='dominio')
 
     # Obtener datos de tensiones
     if campo in mesh.cell_data:
@@ -598,15 +624,16 @@ def crear_vista_bulbo_sin_zapata(mesh, campo, output_file, titulo="Bulbo de Pres
         }
     )
 
-    # Agregar SOLO los bordes de la zapata en ROJO
-    plotter.add_mesh(
-        zapata_mesh,
-        style='wireframe',
-        color='red',
-        line_width=3.0,
-        opacity=1.0,
-        label='Zapata'
-    )
+    # Agregar SOLO los bordes de la zapata en ROJO (si existe)
+    if zapata_mesh.n_points > 0:
+        plotter.add_mesh(
+            zapata_mesh,
+            style='wireframe',
+            color='red',
+            line_width=3.0,
+            opacity=1.0,
+            label='Zapata'
+        )
 
     # Configurar cámara
     configurar_camara_isometrica(plotter, mesh)
@@ -636,8 +663,17 @@ def crear_vista_bulbo_sin_zapata(mesh, campo, output_file, titulo="Bulbo de Pres
     )
 
     # Estadísticas (usando datos del suelo solamente)
-    suelo_data = suelo_mesh.cell_data[campo]
-    info_text = f"Máx: {suelo_data.max():.1f} {unidades} | Mín: {suelo_data.min():.1f} {unidades} | Media: {suelo_data.mean():.1f} {unidades}"
+    if campo in suelo_mesh.cell_data:
+        suelo_data = suelo_mesh.cell_data[campo]
+    elif campo in suelo_mesh.point_data:
+        suelo_data = suelo_mesh.point_data[campo]
+    else:
+        suelo_data = None
+
+    if suelo_data is not None:
+        info_text = f"Máx: {suelo_data.max():.1f} {unidades} | Mín: {suelo_data.min():.1f} {unidades} | Media: {suelo_data.mean():.1f} {unidades}"
+    else:
+        info_text = f"Campo '{campo}' no disponible"
     plotter.add_text(
         info_text,
         position=(0.45, 0.02),
