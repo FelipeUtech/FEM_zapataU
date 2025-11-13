@@ -7,19 +7,19 @@ MODELO:
   Dominio: 7.5m × 8.75m × 20.200000000000003m
   Modelo: Cuarto con simetría
   Malla: GMSH Tetraédrica
-  Elementos: 7090 elementos tetraédricos
-  Nodos: 1731
+  Elementos: 7395 elementos tetraédricos
+  Nodos: 1781
   Estratos suelo: Estrato 1 (E=15000 MPa, h=5.9m), Estrato 2 (E=5000 MPa, h=6.3m), Estrato 3 (E=12000 MPa, h=6.4m), Estrato 4 (E=50000 MPa, h=1.6m)
   Material zapata: E=25000000 MPa (concreto rígido)
-  Peso total modelo: 24347678.12 kN
+  Peso total modelo: 24442185.21 kN
 
 ================================================================================
 FASE 1 - GRAVEDAD
 ================================================================================
   Tipo: Campo de tensiones por peso propio
-  Asentamiento máximo: 371.2357 mm
+  Asentamiento máximo: 375.5883 mm
   Asentamiento mínimo: -0.0000 mm
-  Asentamiento promedio: 296.4252 mm
+  Asentamiento promedio: 304.0254 mm
 
 ================================================================================
 FASE 2 - CARGA INCREMENTAL
@@ -27,19 +27,19 @@ FASE 2 - CARGA INCREMENTAL
   Tipo: Carga de columna
   Carga aplicada: 338.62 kN
   Presión contacto: 145.48 kPa
-  Asentamiento máximo: 20.9178 mm
+  Asentamiento máximo: 22.3632 mm
   Asentamiento mínimo: 0.0000 mm
-  Asentamiento promedio: 12.2427 mm
+  Asentamiento promedio: 13.0330 mm
 
 ================================================================================
 RESULTADOS TOTALES (FASE 1 + FASE 2)
 ================================================================================
-  Asentamiento máximo: 387.5301 mm
-  Asentamiento mínimo: 332.3312 mm
-  Asentamiento promedio: 377.4486 mm
-  Desviación estándar: 11.7990 mm
-  Diferencial: 55.1988 mm
-  Relación diferencial: 0.1424
+  Asentamiento máximo: 396.4831 mm
+  Asentamiento mínimo: 333.3992 mm
+  Asentamiento promedio: 383.1619 mm
+  Desviación estándar: 13.9431 mm
+  Diferencial: 63.0839 mm
+  Relación diferencial: 0.1591
 
 ================================================================================
 
