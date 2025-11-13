@@ -132,6 +132,32 @@ for i, soil_vol in enumerate(soil_volumes):
 
 gmsh.model.occ.synchronize()
 
+# CRÍTICO: Usar fragment para forzar interfaces compartidas entre zapata y suelo
+print("\nFragmentando geometría para crear interfaces compartidas...")
+all_volumes = [(3, s['tag']) for s in soil_tags_cut] + [(3, foot)]
+
+# Fragment une todos los volúmenes y crea nodos compartidos en las interfaces
+fragmented, _ = gmsh.model.occ.fragment(all_volumes, [])
+print(f"  ✓ Fragmentado: {len(all_volumes)} volúmenes → {len(fragmented)} piezas")
+
+# Reasignar tags después de fragment
+# Los primeros len(soil_tags_cut) son suelo, el último es zapata
+soil_tags_fragmented = []
+for i, soil_data in enumerate(soil_tags_cut):
+    if i < len(fragmented) - 1:
+        soil_tags_fragmented.append({
+            'tag': fragmented[i][1],
+            'nombre': soil_data['nombre']
+        })
+
+foot_tag = fragmented[-1][1]  # Último elemento es la zapata
+
+# Actualizar soil_tags_cut con tags fragmentados
+soil_tags_cut = soil_tags_fragmented
+
+gmsh.model.occ.synchronize()
+print("  ✓ Interfaces compartidas creadas")
+
 # ---------------------------------
 # Grupos físicos
 # ---------------------------------
@@ -146,8 +172,8 @@ for i, soil_data in enumerate(soil_tags_cut, 1):
     phys_groups[phys_name] = phys_group
     print(f"  ✓ Grupo físico '{phys_name}': {soil_data['nombre']}")
 
-# Grupo para zapata
-phys_foot = gmsh.model.addPhysicalGroup(3, [foot])
+# Grupo para zapata (usar foot_tag del fragment)
+phys_foot = gmsh.model.addPhysicalGroup(3, [foot_tag])
 gmsh.model.setPhysicalName(3, phys_foot, "FOOTING")
 phys_groups['FOOTING'] = phys_foot
 print(f"  ✓ Grupo físico 'FOOTING': Zapata de concreto")
@@ -225,6 +251,16 @@ gmsh.model.mesh.setSizeCallback(size_callback)
 
 print("\nGenerando malla 3D...")
 gmsh.model.mesh.generate(3)
+
+# CRÍTICO: Eliminar nodos duplicados con tolerancia para asegurar interfaz única
+print("Eliminando nodos duplicados en interfaz...")
+gmsh.model.mesh.removeDuplicateNodes()
+print("✓ Nodos duplicados eliminados")
+
+# Recombinar y optimizar
+print("Optimizando malla...")
+gmsh.model.mesh.optimize("Netgen")
+print("✓ Malla optimizada")
 
 # Guardar archivo .msh
 msh_file = "mallas/zapata_3D_cuarto.msh"
