@@ -4,48 +4,40 @@ Archivo de configuración para la generación de mallas de zapatas.
 """
 
 # Nombre de la estructura
-NOMBRE_ESTRUCTURA = "FILTRADO Zn, Cu y Pb"
+NOMBRE_ESTRUCTURA = "FLOTACIÓN Cu y Pb"
 
-# Parámetros de la zapata - FILTRADO Zn, Cu y Pb
+# Parámetros de la zapata - FLOTACIÓN Cu y Pb
 ZAPATA = {
-    'B': 3.0,      # Ancho (m)
-    'L': 3.5,      # Largo (m)
+    'B': 4.2,      # Ancho (m)
+    'L': 4.8,      # Largo (m)
     'h': 0.7,      # Altura/espesor (m)
     'Df': 4.0,     # Profundidad de desplante (m)
 }
 
-# Estratos de suelo - FILTRADO Zn, Cu y Pb (de arriba hacia abajo)
+# Estratos de suelo - FLOTACIÓN Cu y Pb (de arriba hacia abajo)
 ESTRATOS_SUELO = [
     {
         'nombre': 'Estrato 1',
-        'espesor': 5.9,   # metros (profundidad: 0 a 5.9 m)
-        'E': 15e6,        # Módulo de Young (Pa) - 15 MPa
-        'nu': 0.35,       # Coeficiente de Poisson
-        'rho': 1835,      # Densidad (kg/m³) - convertido de 18 kN/m³
+        'espesor': 2.9,   # metros (profundidad: 0 a 2.9 m)
+        'E': 12e6,        # Módulo de Young (Pa) - 12 MPa
+        'nu': 0.30,       # Coeficiente de Poisson
+        'rho': 1937,      # Densidad (kg/m³) - convertido de 19 kN/m³
         'color': [0.9, 0.85, 0.7],  # Color claro (RGB)
     },
     {
         'nombre': 'Estrato 2',
-        'espesor': 6.3,   # metros (profundidad: 5.9 a 12.2 m)
-        'E': 5e6,         # 5 MPa
-        'nu': 0.35,       # Coeficiente de Poisson
-        'rho': 1835,      # Densidad (kg/m³) - convertido de 18 kN/m³
-        'color': [0.8, 0.75, 0.6],  # Color claro-medio
-    },
-    {
-        'nombre': 'Estrato 3',
-        'espesor': 6.4,   # metros (profundidad: 12.2 a 18.6 m)
-        'E': 12e6,        # 12 MPa
-        'nu': 0.30,       # Coeficiente de Poisson
-        'rho': 1937,      # Densidad (kg/m³) - convertido de 19 kN/m³
-        'color': [0.7, 0.6, 0.4],   # Color medio
-    },
-    {
-        'nombre': 'Estrato 4',
-        'espesor': 1.6,   # metros (profundidad: 18.6 a 20.2 m)
+        'espesor': 6.6,   # metros (profundidad: 2.9 a 9.5 m)
         'E': 50e6,        # 50 MPa
         'nu': 0.20,       # Coeficiente de Poisson
         'rho': 2039,      # Densidad (kg/m³) - convertido de 20 kN/m³
+        'color': [0.7, 0.6, 0.4],   # Color medio
+    },
+    {
+        'nombre': 'Estrato 3',
+        'espesor': 8.4,   # metros (profundidad: 9.5 a 17.9 m)
+        'E': 200e6,       # 200 MPa
+        'nu': 0.15,       # Coeficiente de Poisson
+        'rho': 2200,      # Densidad (kg/m³) - convertido de 21.6 kN/m³
         'color': [0.5, 0.4, 0.3],   # Color oscuro
     },
 ]
@@ -68,9 +60,9 @@ DOMINIO = {
     'profundidad': sum(e['espesor'] for e in ESTRATOS_SUELO),  # Profundidad total (suma de estratos)
 }
 
-# Cargas aplicadas - FILTRADO Zn, Cu y Pb
+# Cargas aplicadas - FLOTACIÓN Cu y Pb
 CARGAS = {
-    'P_column': 1354.5,  # Carga de columna en kN (presión: 129 kPa, se divide automáticamente para modelo 1/4)
+    'P_column': 2419.2,  # Carga de columna en kN (presión: 120 kPa, se divide automáticamente para modelo 1/4)
 }
 
 # Configuración del análisis
