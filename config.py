@@ -11,7 +11,7 @@ ZAPATA = {
     'B': 1.8,      # Ancho (m)
     'L': 2.0,      # Largo (m)
     'h': 0.5,      # Altura/espesor (m)
-    'Df': 0.5,     # Profundidad de desplante (m)
+    'Df': 3.0,     # Profundidad de desplante (m)
 }
 
 # Estratos de suelo - CHANCADO PRIMARIO (de arriba hacia abajo)
