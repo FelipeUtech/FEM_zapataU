@@ -11,7 +11,7 @@ ZAPATA = {
     'B': 6.0,      # Ancho (m)
     'L': 8.0,      # Largo (m)
     'h': 1.0,      # Altura/espesor (m)
-    'Df': 2.0,     # Profundidad de desplante (m)
+    'Df': 3.5,     # Profundidad de desplante (m)
 }
 
 # Estratos de suelo - EDIFICIO DE MOLIENDA (de arriba hacia abajo)

@@ -7,19 +7,19 @@ MODELO:
   Dominio: 15.0m × 20.0m × 20.0m
   Modelo: Cuarto con simetría
   Malla: GMSH Tetraédrica
-  Elementos: 8412 elementos tetraédricos
-  Nodos: 2006
+  Elementos: 8583 elementos tetraédricos
+  Nodos: 2031
   Estratos suelo: Estrato 1 (E=5000 MPa, h=6.45m), Estrato 2 (E=12000 MPa, h=2.25m), Estrato 3 (E=50000 MPa, h=11.3m)
   Material zapata: E=25000000 MPa (concreto rígido)
-  Peso total modelo: 114994193.40 kN
+  Peso total modelo: 115210209.60 kN
 
 ================================================================================
 FASE 1 - GRAVEDAD
 ================================================================================
   Tipo: Campo de tensiones por peso propio
-  Asentamiento máximo: 163.9785 mm
+  Asentamiento máximo: 164.0589 mm
   Asentamiento mínimo: -0.0000 mm
-  Asentamiento promedio: 79.7545 mm
+  Asentamiento promedio: 82.3294 mm
 
 ================================================================================
 FASE 2 - CARGA INCREMENTAL
@@ -27,19 +27,19 @@ FASE 2 - CARGA INCREMENTAL
   Tipo: Carga de columna
   Carga aplicada: 1572.00 kN
   Presión contacto: 154.54 kPa
-  Asentamiento máximo: 39.2724 mm
-  Asentamiento mínimo: -0.7744 mm
-  Asentamiento promedio: 9.3023 mm
+  Asentamiento máximo: 47.2269 mm
+  Asentamiento mínimo: -0.3594 mm
+  Asentamiento promedio: 11.0472 mm
 
 ================================================================================
 RESULTADOS TOTALES (FASE 1 + FASE 2)
 ================================================================================
-  Asentamiento máximo: 163.9603 mm
-  Asentamiento mínimo: 141.6569 mm
-  Asentamiento promedio: 149.2852 mm
-  Desviación estándar: 4.8315 mm
-  Diferencial: 22.3034 mm
-  Relación diferencial: 0.1360
+  Asentamiento máximo: 164.1645 mm
+  Asentamiento mínimo: 142.5412 mm
+  Asentamiento promedio: 152.7278 mm
+  Desviación estándar: 6.3174 mm
+  Diferencial: 21.6234 mm
+  Relación diferencial: 0.1317
 
 ================================================================================
 
